@@ -1,3 +1,5 @@
+module Labyrinth where
+
 import Data.List
 
 data Cell = Land
@@ -43,22 +45,28 @@ labHeight :: Labyrinth -> Int
 labHeight = length . head . cells
 
 cell :: Labyrinth -> Int -> Int -> Cell
-cell = undefined
+cell l x y = (cells l) !! x !! y
 
 wallH :: Labyrinth -> Int -> Int -> Wall
-wallH = undefined
+wallH l x y = (wallsH l) !! x !! y
 
 wallV :: Labyrinth -> Int -> Int -> Wall
-wallV = undefined
+wallV l x y = (wallsV l) !! x !! y
 
 showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
     where mk = "*"
-          ws = map (\x -> showH $ wallH l x y) [1..w]
           w  = labWidth l
+          ws = map (\x -> showH $ wallH l x y) [1..w]
 
 showCellLine :: Labyrinth -> Int -> String
-showCellLine = undefined
+showCellLine l y = concat (map (\x -> showVWall l x y ++ showCell l x y) [0..w - 1])
+                       ++ showVWall l w y
+                   where w = labWidth l
+                         showVWall :: Labyrinth -> Int -> Int -> String
+                         showVWall l x y = showV $ wallV l x y
+                         showCell :: Labyrinth -> Int -> Int -> String
+                         showCell l x y = show $ cell l x y
 
 instance Show Labyrinth where
     show l = intercalate "\n" $ firstLines ++ [lastLine]

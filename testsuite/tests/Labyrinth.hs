@@ -15,19 +15,17 @@ empty_labyrinth = Labyrinth { cells = replicate 5 $ replicate 5 $ Land
                             , players = []
                             }
 
-empty_expected = intercalate "\n" $ [ "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
-                                    , " . . . . . "
-                                    , "+ + + + + +"
+empty_expected = intercalate "\n" $ [ "+  +  +  +  +  +"
+                                    , " .  .  .  .  .  "
+                                    , "+  +  +  +  +  +"
+                                    , " .  .  .  .  .  "
+                                    , "+  +  +  +  +  +"
+                                    , " .  .  .  .  .  "
+                                    , "+  +  +  +  +  +"
+                                    , " .  .  .  .  .  "
+                                    , "+  +  +  +  +  +"
+                                    , " .  .  .  .  .  "
+                                    , "+  +  +  +  +  +"
                                     ]
 
 test_show = TestCase $ do

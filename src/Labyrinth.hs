@@ -6,15 +6,15 @@ data Cell = Land
     deriving (Eq)
 
 instance Show Cell where
-    show Land = "."
+    show Land = ". "
 
 data Wall = NoWall | Wall | HardWall
     deriving (Eq)
 
 showH :: Wall -> String
-showH NoWall   = " "
-showH Wall     = "-"
-showH HardWall = "="
+showH NoWall   = "  "
+showH Wall     = "--"
+showH HardWall = "=="
 
 showV :: Wall -> String
 showV NoWall   = " "
@@ -55,9 +55,9 @@ wallV l x y = (wallsV l) !! x !! y
 
 showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
-    where mk = "*"
+    where mk = "+"
           w  = labWidth l
-          ws = map (\x -> showH $ wallH l x y) [1..w]
+          ws = map (\x -> showH $ wallH l x y) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
 showCellLine l y = concat (map (\x -> showVWall l x y ++ showCell l x y) [0..w - 1])

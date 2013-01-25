@@ -18,6 +18,21 @@ instance Show Cell where
 data Wall = NoWall | Wall | HardWall
     deriving (Eq)
 
+data Position = Pos { pX :: Int
+                    , pY :: Int
+                    }
+                deriving (Eq, Show)
+
+data Direction = L | R | U | D | Next
+                 deriving (Eq, Show)
+
+advance :: Position -> Direction -> Position
+advance (Pos x y) L = Pos (x - 1) y
+advance (Pos x y) U = Pos x (y - 1)
+advance (Pos x y) R = Pos (x + 1) y
+advance (Pos x y) D = Pos x (y + 1)
+advance (Pos x y) Next = error "Cannot advance in Next direction."
+
 showH :: Wall -> String
 showH NoWall   = "  "
 showH Wall     = "--"
@@ -28,7 +43,8 @@ showV NoWall   = " "
 showV Wall     = "|"
 showV HardWall = "‖"
 
-data Player = Player { bullets  :: Int
+data Player = Player { position :: Position
+                     , bullets  :: Int
                      , grenades :: Int
                      , treasure :: Maybe Treasure
                      }
@@ -42,6 +58,7 @@ data Labyrinth = Labyrinth { cells   :: [[Cell]]
                            , wallsH  :: [[Wall]]
                            , wallsV  :: [[Wall]]
                            , players :: [Player]
+                           , currentPlayer :: Int
                            }
                  deriving (Eq)
 
@@ -51,29 +68,39 @@ labWidth = length . cells
 labHeight :: Labyrinth -> Int
 labHeight = length . head . cells
 
-cell :: Labyrinth -> Int -> Int -> Cell
-cell l x y = (cells l) !! x !! y
+cell :: Labyrinth -> Position -> Cell
+cell l (Pos x y) = (cells l) !! x !! y
 
-wallH :: Labyrinth -> Int -> Int -> Wall
-wallH l x y = (wallsH l) !! x !! y
+wallH :: Labyrinth -> Position -> Wall
+wallH l (Pos x y) = (wallsH l) !! x !! y
 
-wallV :: Labyrinth -> Int -> Int -> Wall
-wallV l x y = (wallsV l) !! x !! y
+wallV :: Labyrinth -> Position -> Wall
+wallV l (Pos x y) = (wallsV l) !! x !! y
+
+wallAt :: Labyrinth -> Position -> Direction -> Wall
+wallAt _ _ Next = error "No walls in Next direction."
+wallAt l p U = wallV l p
+wallAt l p L = wallH l p
+wallAt l p D = wallV l (advance p D)
+wallAt l p R = wallH l (advance p R)
+
+player :: Labyrinth -> Int -> Player
+player l i = (players l) !! i
 
 showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
     where mk = "+"
           w  = labWidth l
-          ws = map (\x -> showH $ wallH l x y) [0..w - 1]
+          ws = map (\x -> showH $ wallH l (Pos x y)) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
-showCellLine l y = concat (map (\x -> showVWall l x y ++ showCell l x y) [0..w - 1])
-                       ++ showVWall l w y
+showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1])
+                       ++ showVWall l (Pos w y)
                    where w = labWidth l
-                         showVWall :: Labyrinth -> Int -> Int -> String
-                         showVWall l x y = showV $ wallV l x y
-                         showCell :: Labyrinth -> Int -> Int -> String
-                         showCell l x y = show $ cell l x y
+                         showVWall :: Labyrinth -> Position -> String
+                         showVWall l p = showV $ wallV l p
+                         showCell :: Labyrinth -> Position -> String
+                         showCell l p = show $ cell l p
 
 instance Show Labyrinth where
     show l = intercalate "\n" $ firstLines ++ [lastLine]

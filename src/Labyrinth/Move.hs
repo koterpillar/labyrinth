@@ -2,9 +2,6 @@ module Labyrinth.Move where
 
 import Labyrinth.Map
 
-data Direction = L | R | U | D | Next
-                 deriving (Eq, Show)
-
 data Action = Go Direction
             | Shoot Direction
             | Grenade Direction

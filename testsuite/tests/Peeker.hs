@@ -21,10 +21,13 @@ data Fruit = Apple | Orange
 data Animal = Cat | Fox
               deriving (Eq, Show)
 
-data Rec = Rec { fruit_  :: Fruit
-               , animal_ :: Animal
-               }
-               deriving (Eq, Show)
+data Rec = RecC { fruit_  :: Fruit
+                , animal_ :: Animal
+                }
+         | RecC2 { number_ :: Int
+                 }
+         | RecC3 Bool Bool
+         deriving (Eq, Show)
 
 derivePeek ''Rec
 
@@ -89,16 +92,23 @@ test_list = TestCase $ do
         updP (listP 2) lst 99
 
 test_template = TestCase $ do
-    let rec = Rec Apple Cat
+    let rec = RecC Apple Cat
+    let rec2 = RecC2 10
     assertEqual "getP first derived value"
         Apple $
         getP fruit rec
     assertEqual "getP second derived value"
         Cat $
         getP animal rec
+    assertEqual "getP second alternative"
+        10 $
+        getP number rec2
     assertEqual "put derived value"
-        (Rec Orange Cat) $
+        (RecC Orange Cat) $
         updP fruit rec Orange
     assertEqual "put second derived value"
-        (Rec Apple Fox) $
+        (RecC Apple Fox) $
         updP animal rec Fox
+    assertEqual "put second alternative"
+        (RecC2 5) $
+        updP number rec2 5

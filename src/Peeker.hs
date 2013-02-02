@@ -45,12 +45,18 @@ listP i l = (l !! i, \y -> take i l ++ [y] ++ drop (i + 1) l)
 
 derivePeek :: Name -> Q [Dec]
 derivePeek rec = do
-    TyConI (DataD _ _ _ [RecC _ fields] _) <- reify rec
-    decls <- mapM (derivePeekFor rec) fields
+    TyConI (DataD _ _ _ constructors _) <- reify rec
+    decls <- mapM (derivePeekConstructor rec) constructors
     return $ concat decls
 
-derivePeekFor :: Name -> (Name, a, Type) -> Q [Dec]
-derivePeekFor rec fieldDec = do
+derivePeekConstructor :: Name -> Con -> Q [Dec]
+derivePeekConstructor rec (NormalC _ _) = return []
+derivePeekConstructor rec (RecC _ fields) = do
+    decls <- mapM (derivePeekField rec) fields
+    return $ concat decls
+
+derivePeekField :: Name -> (Name, a, Type) -> Q [Dec]
+derivePeekField rec fieldDec = do
     let (field, _, fieldType) = fieldDec
     let fieldName = nameBase field
     let (accessorName, "_") = splitAt (length fieldName - 1) fieldName

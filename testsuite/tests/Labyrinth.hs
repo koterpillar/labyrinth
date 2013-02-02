@@ -20,17 +20,8 @@ test_advance = TestCase $ do
         (Pos 0 1) $
         advance (Pos 0 0) D
 
-player_one = Player { position_ = Pos 0 0
-                    , bullets_  = 3
-                    , grenades_ = 3
-                    , treasure_ = Nothing
-                    }
-
-player_two = Player { position_ = Pos 2 2
-                    , bullets_  = 3
-                    , grenades_ = 3
-                    , treasure_ = Nothing
-                    }
+player_one = initialPlayer $ Pos 0 0
+player_two = initialPlayer $ Pos 2 2
 
 empty_labyrinth = Labyrinth { cells_         = replicate 5 $ replicate 5 $ (Cell Land)
                             , wallsH_        = replicate 5 $ replicate 6 $ NoWall

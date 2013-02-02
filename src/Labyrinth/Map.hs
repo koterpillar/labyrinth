@@ -67,6 +67,13 @@ derivePeek ''Player
 instance Show Player where
     show p = "Player " ++ show (position_ p)
 
+initialPlayer :: Position -> Player
+initialPlayer pos = Player { position_ = pos
+                           , bullets_  = 3
+                           , grenades_ = 3
+                           , treasure_ = Nothing
+                           }
+
 -- wallsV and wallsH are considered to be to the left and top of the cells
 data Labyrinth = Labyrinth { cells_         :: [[Cell]]
                            , wallsH_        :: [[Wall]]

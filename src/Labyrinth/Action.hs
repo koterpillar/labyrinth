@@ -8,7 +8,13 @@ import Labyrinth.Move
 import Peeker
 
 performMove :: Move -> State Labyrinth MoveResult
-performMove (Move []) = return $ MoveRes []
+performMove (Move []) = do
+    l <- get
+    current <- getS currentPlayer
+    let pCount = playerCount l
+    let next = (current + 1) `mod` pCount
+    updS currentPlayer next
+    return $ MoveRes []
 performMove (Move (act:acts)) = do
     ar <- performAction act
     (MoveRes ars) <- performMove $ Move acts

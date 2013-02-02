@@ -84,6 +84,9 @@ labWidth = length . cells_
 labHeight :: Labyrinth -> Int
 labHeight = length . head . cells_
 
+playerCount :: Labyrinth -> Int
+playerCount = length . players_
+
 cell :: Position -> Peek Labyrinth Cell
 cell (Pos x y) = cells ~> listP x ~> listP y
 
@@ -118,13 +121,24 @@ showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x
                          showCell :: Labyrinth -> Position -> String
                          showCell l p = show $ getP (cell p) l
 
+showMap :: Labyrinth -> [String]
+showMap l = firstLines ++ [lastLine]
+    where h = labHeight l
+          showLine l i = [showWallLine l i, showCellLine l i]
+          firstLines = concat $ map (showLine l) [0..h - 1]
+          lastLine = showWallLine l h
+
 showPlayers :: Labyrinth -> [String]
 showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
     where showPlayer p i = (show i) ++ ": " ++ (show p)
 
+showCurrentPlayer :: Labyrinth -> [String]
+showCurrentPlayer l = ["Current player: " ++ show (getP currentPlayer l)]
+
 instance Show Labyrinth where
-    show l = intercalate "\n" $ firstLines ++ [lastLine] ++ [""] ++ showPlayers l
-        where h = labHeight l
-              showLine l i = [showWallLine l i, showCellLine l i]
-              firstLines = concat $ map (showLine l) [0..h - 1]
-              lastLine = showWallLine l h
+    show l = intercalate "\n" $ foldr1 (++) parts
+        where parts = map ($ l) [ showMap
+                                , const [""]
+                                , showPlayers
+                                , showCurrentPlayer
+                                ]

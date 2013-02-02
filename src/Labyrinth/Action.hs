@@ -16,16 +16,13 @@ performMove (Move (act:acts)) = do
 
 performAction :: Action -> State Labyrinth ActionResult
 performAction (Go dir) = do
-    l <- get
-    let pi = getP currentPlayer l
-    let p = getP (player pi) l
-    let pp = getP position p
-    let w = getP (wall pp dir) l
+    pi <- getS currentPlayer
+    pos <- getS (player pi ~> position)
+    w <- getS (wall pos dir)
     if w == NoWall then do
-                             let npp = advance pp dir
-                             let nl = updP (player pi ~> position) l npp
-                             put nl
-                             let nc = getP (cell npp ~> ctype) l
-                             return $ GoR $ WentOnto nc
-    else return $ GoR HitWall
-
+        let npos = advance pos dir
+        updS (player pi ~> position) npos
+        nc <- getS (cell npos ~> ctype)
+        return $ GoR $ WentOnto nc
+    else
+        return $ GoR HitWall

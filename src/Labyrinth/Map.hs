@@ -10,11 +10,24 @@ import Peeker
 data CellType = Land
                 deriving (Eq)
 
-data Cell = Cell { ctype_ :: CellType
+data Treasure = TrueTreasure | FakeTreasure
+                deriving (Eq, Show)
+
+data Cell = Cell { ctype_      :: CellType
+                 , cbullets_   :: Int
+                 , cgrenades_  :: Int
+                 , ctreasures_ :: [Treasure]
                  }
                  deriving (Eq)
 
 derivePeek ''Cell
+
+emptyCell :: CellType -> Cell
+emptyCell ct = Cell { ctype_      = ct
+                    , cbullets_   = 0
+                    , cgrenades_  = 0
+                    , ctreasures_ = []
+                    }
 
 data Wall = NoWall | Wall | HardWall
     deriving (Eq)
@@ -36,23 +49,26 @@ advance (Pos x y) U = Pos x (y - 1)
 advance (Pos x y) R = Pos (x + 1) y
 advance (Pos x y) D = Pos x (y + 1)
 
-data Treasure = TrueTreasure | FakeTreasure
-                deriving (Eq, Show)
-
-data Player = Player { position_ :: Position
-                     , bullets_  :: Int
-                     , grenades_ :: Int
-                     , treasure_ :: Maybe Treasure
+data Player = Player { position_  :: Position
+                     , pbullets_  :: Int
+                     , pgrenades_ :: Int
+                     , ptreasure_ :: Maybe Treasure
                      }
               deriving (Eq)
 
 derivePeek ''Player
 
+maxBullets :: Int
+maxBullets = 3
+
+maxGrenades :: Int
+maxGrenades = 3
+
 initialPlayer :: Position -> Player
-initialPlayer pos = Player { position_ = pos
-                           , bullets_  = 3
-                           , grenades_ = 3
-                           , treasure_ = Nothing
+initialPlayer pos = Player { position_  = pos
+                           , pbullets_  = maxBullets
+                           , pgrenades_ = maxGrenades
+                           , ptreasure_ = Nothing
                            }
 
 -- wallsV and wallsH are considered to be to the left and top of the cells
@@ -77,7 +93,7 @@ playerCount = length . players_
 
 emptyLabyrinth :: Int -> Int -> [Position] -> Labyrinth
 emptyLabyrinth w h positions =
-    let initialLab = Labyrinth { cells_         = replicate w $ replicate h $ (Cell Land)
+    let initialLab = Labyrinth { cells_         = replicate w $ replicate h $ emptyCell Land
                                , wallsH_        = replicate w $ replicate (h + 1) $ NoWall
                                , wallsV_        = replicate (w + 1) $ replicate h $ NoWall
                                , players_       = map initialPlayer positions

@@ -83,9 +83,25 @@ test_move = TestCase $ do
     assertMoveUpdates "movement only - went onto land"
         empty_labyrinth
         (Move [goTowards D])
-        (MoveRes [GoR $ WentOnto Land])
+        (MoveRes [GoR $ Went Land 0 0 0 Nothing])
         $ do
             updS (player 0 ~> position) (Pos 0 1)
+            updS currentPlayer 1
+    let empty_spent_ammo = applyState empty_labyrinth $ do
+        updS (player 0 ~> pbullets) 0
+        updS (player 0 ~> pgrenades) 0
+        updS (cell (Pos 0 1) ~> cbullets) 2
+        updS (cell (Pos 0 1) ~> cgrenades) 1
+    assertMoveUpdates "movement - found bullets and grenades"
+        empty_spent_ammo
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went Land 2 1 0 Nothing])
+        $ do
+            updS (player 0 ~> position) (Pos 0 1)
+            updS (player 0 ~> pbullets) 2
+            updS (player 0 ~> pgrenades) 1
+            updS (cell (Pos 0 1) ~> cbullets) 0
+            updS (cell (Pos 0 1) ~> cgrenades) 0
             updS currentPlayer 1
 
 test_grenade = TestCase $ do
@@ -95,24 +111,24 @@ test_grenade = TestCase $ do
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (wall (Pos 0 0) R) NoWall
-            updS (player 0 ~> grenades) 2
+            updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
     assertMoveUpdates "grenade, no wall"
         empty_labyrinth
         (Move [Grenade R])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
-            updS (player 0 ~> grenades) 2
+            updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
     assertMoveUpdates "grenade, hard wall"
         walled_labyrinth
         (Move [Grenade L])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
-            updS (player 0 ~> grenades) 2
+            updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
     assertMoveUpdates "no grenades"
-        (applyState walled_labyrinth $ updS (player 0 ~> grenades) 0)
+        (applyState walled_labyrinth $ updS (player 0 ~> pgrenades) 0)
         (Move [Grenade R])
         (MoveRes [GrenadeR NoGrenades])
         $ do
@@ -122,9 +138,9 @@ test_combined = TestCase $ do
     assertMoveUpdates "move then grenade"
         walled_labyrinth
         (Move [Grenade R, goTowards R])
-        (MoveRes [GrenadeR GrenadeOK, GoR $ WentOnto Land])
+        (MoveRes [GrenadeR GrenadeOK, GoR $ Went Land 0 0 0 Nothing])
         $ do
             updS (player 0 ~> position) (Pos 1 0)
-            updS (player 0 ~> grenades) 2
+            updS (player 0 ~> pgrenades) 2
             updS (wall (Pos 0 0) R) NoWall
             updS currentPlayer 1

@@ -1,7 +1,11 @@
+{-# Language TemplateHaskell #-}
+
 module Labyrinth.Move where
 
 import Labyrinth.Map
 import Labyrinth.Show
+
+import Peeker
 
 data MoveDirection = Towards Direction | Next
                    deriving (Eq, Show)
@@ -17,9 +21,16 @@ goTowards = Go . Towards
 data Move = Move [Action]
             deriving (Eq, Show)
 
-data GoResult = WentOnto CellType -- TODO: found
-              | HitWall
+data GoResult = Went { onto_           :: CellType
+                     , foundBullets_   :: Int
+                     , foundGrenades_  :: Int
+                     , foundTreasures_ :: Int
+                     , transportedTo_  :: Maybe CellType
+                     }
+              | HitWall {}
               deriving (Eq, Show)
+
+derivePeek ''GoResult
 
 data ShootResult = ShootOK
                  | Scream

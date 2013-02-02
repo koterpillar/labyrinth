@@ -10,15 +10,15 @@ instance Show CellType where
     show Land = "."
 
 instance Show Cell where
-    show (Cell t) = show t ++ " "
+    show c = show (ctype_ c) ++ " "
 
 instance Show Player where
     show p = "Player "
           ++ show (position_ p)
           ++ ", "
-          ++ show (bullets_ p) ++ "B"
+          ++ show (pbullets_ p) ++ "B"
           ++ ", "
-          ++ show (grenades_ p) ++ "G"
+          ++ show (pgrenades_ p) ++ "G"
 
 showH :: Wall -> String
 showH NoWall   = "  "

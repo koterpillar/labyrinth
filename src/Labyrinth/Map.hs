@@ -1,7 +1,10 @@
 -- Map-related functions
+{-# Language TemplateHaskell #-}
 module Labyrinth.Map where
 
 import Data.List
+
+import Peeker
 
 data CellType = Land
                 deriving (Eq)
@@ -9,8 +12,11 @@ data CellType = Land
 instance Show CellType where
     show Land = "."
 
-data Cell = Cell CellType
-            deriving (Eq)
+data Cell = Cell { ctype_ :: CellType
+                 }
+                 deriving (Eq)
+
+derivePeek ''Cell
 
 instance Show Cell where
     show (Cell t) = show t ++ " "
@@ -43,64 +49,68 @@ showV NoWall   = " "
 showV Wall     = "|"
 showV HardWall = "‖"
 
-data Player = Player { position :: Position
-                     , bullets  :: Int
-                     , grenades :: Int
-                     , treasure :: Maybe Treasure
-                     }
-              deriving (Eq)
-
 data Treasure = TrueTreasure | FakeTreasure
                 deriving (Eq)
 
+data Player = Player { position_ :: Position
+                     , bullets_  :: Int
+                     , grenades_ :: Int
+                     , treasure_ :: Maybe Treasure
+                     }
+              deriving (Eq)
+
+derivePeek ''Player
+
 -- wallsV and wallsH are considered to be to the left and top of the cells
-data Labyrinth = Labyrinth { cells   :: [[Cell]]
-                           , wallsH  :: [[Wall]]
-                           , wallsV  :: [[Wall]]
-                           , players :: [Player]
-                           , currentPlayer :: Int
+data Labyrinth = Labyrinth { cells_         :: [[Cell]]
+                           , wallsH_        :: [[Wall]]
+                           , wallsV_        :: [[Wall]]
+                           , players_       :: [Player]
+                           , currentPlayer_ :: Int
                            }
                  deriving (Eq)
 
+derivePeek ''Labyrinth
+
 labWidth :: Labyrinth -> Int
-labWidth = length . cells
+labWidth = length . cells_
 
 labHeight :: Labyrinth -> Int
-labHeight = length . head . cells
+labHeight = length . head . cells_
 
-cell :: Labyrinth -> Position -> Cell
-cell l (Pos x y) = (cells l) !! x !! y
+cell :: Position -> Peek Labyrinth Cell
+cell (Pos x y) = cells ~> listP x ~> listP y
 
-wallH :: Labyrinth -> Position -> Wall
-wallH l (Pos x y) = (wallsH l) !! x !! y
+wallH :: Position -> Peek Labyrinth Wall
+wallH (Pos x y) = wallsH ~> listP x ~> listP y
 
-wallV :: Labyrinth -> Position -> Wall
-wallV l (Pos x y) = (wallsV l) !! x !! y
+wallV :: Position -> Peek Labyrinth Wall
+wallV (Pos x y) = wallsV ~> listP x ~> listP y
 
-wallAt :: Labyrinth -> Position -> Direction -> Wall
-wallAt _ _ Next = error "No walls in Next direction."
-wallAt l p U = wallV l p
-wallAt l p L = wallH l p
-wallAt l p D = wallV l (advance p D)
-wallAt l p R = wallH l (advance p R)
+wall :: Position -> Direction -> Peek Labyrinth Wall
+wall _ Next = error "No walls in Next direction."
+wall p U = wallV p
+wall p L = wallH p
+wall p D = wallV (advance p D)
+wall p R = wallH (advance p R)
 
-player :: Labyrinth -> Int -> Player
-player l i = (players l) !! i
+player :: Int -> Peek Labyrinth Player
+player i = players ~> listP i
 
 showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
     where mk = "+"
           w  = labWidth l
-          ws = map (\x -> showH $ wallH l (Pos x y)) [0..w - 1]
+          ws = map (\x -> showH $ getP (wallH (Pos x y)) l) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
 showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1])
                        ++ showVWall l (Pos w y)
                    where w = labWidth l
                          showVWall :: Labyrinth -> Position -> String
-                         showVWall l p = showV $ wallV l p
+                         showVWall l p = showV $ getP (wallV p) l
                          showCell :: Labyrinth -> Position -> String
-                         showCell l p = show $ cell l p
+                         showCell l p = show $ getP (cell p) l
 
 instance Show Labyrinth where
     show l = intercalate "\n" $ firstLines ++ [lastLine]

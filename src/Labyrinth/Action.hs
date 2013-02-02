@@ -5,6 +5,8 @@ import Control.Monad.State
 import Labyrinth.Map
 import Labyrinth.Move
 
+import Peeker
+
 performMove :: Move -> State Labyrinth MoveResult
 performMove (Move []) = return $ MoveRes []
 performMove (Move (act:acts)) = do
@@ -15,11 +17,15 @@ performMove (Move (act:acts)) = do
 performAction :: Action -> State Labyrinth ActionResult
 performAction (Go dir) = do
     l <- get
-    let p = currentPlayer l
-    let pp = position $ player l p
-    let wall = wallAt l pp dir
-    act wall
-    where act NoWall   = undefined
-          act Wall     = return $ GoR HitWall
-          act HardWall = return $ GoR HitWall
+    let pi = getP currentPlayer l
+    let p = getP (player pi) l
+    let pp = getP position p
+    let w = getP (wall pp dir) l
+    if w == NoWall then do
+                             let npp = advance pp dir
+                             let nl = updP (player pi ~> position) l npp
+                             put nl
+                             let nc = getP (cell npp ~> ctype) l
+                             return $ GoR $ WentOnto nc
+    else return $ GoR HitWall
 

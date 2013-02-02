@@ -13,6 +13,7 @@ main = runTestTT tests
 tests = TestList [ test_advance
                  , test_show
                  , test_move
+                 , test_grenade
                  ]
 
 test_advance = TestCase $ do
@@ -20,38 +21,32 @@ test_advance = TestCase $ do
         (Pos 0 1) $
         advance (Pos 0 0) D
 
+w = 6
+h = 5
+
 player_one = initialPlayer $ Pos 0 0
 player_two = initialPlayer $ Pos 2 2
 
-empty_labyrinth = Labyrinth { cells_         = replicate 5 $ replicate 5 $ (Cell Land)
-                            , wallsH_        = replicate 5 $ replicate 6 $ NoWall
-                            , wallsV_        = replicate 6 $ replicate 5 $ NoWall
-                            , players_       = [ player_one
-                                               , player_two
-                                               ]
-                            , currentPlayer_ = 0
-                            }
+empty_labyrinth = emptyLabyrinth w h [Pos 0 0, Pos 2 2]
 
-walled_labyrinth = Labyrinth { cells_         = replicate 5 $ replicate 5 $ (Cell Land)
-                             , wallsH_        = replicate 5 $ replicate 6 $ Wall
-                             , wallsV_        = replicate 6 $ replicate 5 $ Wall
-                             , players_       = [ player_one
-                                                , player_two
-                                                ]
-                             , currentPlayer_ = 0
-                             }
+walled_labyrinth = (flip execState) empty_labyrinth $ do
+    forM_ [0..w-2] $
+        \x -> forM_ [0..h-2] $
+            \y -> do
+                updS (wall (Pos x y) R) Wall
+                updS (wall (Pos x y) D) Wall
 
-empty_expected = intercalate "\n" $ [ "+  +  +  +  +  +"
-                                    , " .  .  .  .  .  "
-                                    , "+  +  +  +  +  +"
-                                    , " .  .  .  .  .  "
-                                    , "+  +  +  +  +  +"
-                                    , " .  .  .  .  .  "
-                                    , "+  +  +  +  +  +"
-                                    , " .  .  .  .  .  "
-                                    , "+  +  +  +  +  +"
-                                    , " .  .  .  .  .  "
-                                    , "+  +  +  +  +  +"
+empty_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
+                                    , "X.  .  .  .  .  . X"
+                                    , "+  +  +  +  +  +  +"
+                                    , "X.  .  .  .  .  . X"
+                                    , "+  +  +  +  +  +  +"
+                                    , "X.  .  .  .  .  . X"
+                                    , "+  +  +  +  +  +  +"
+                                    , "X.  .  .  .  .  . X"
+                                    , "+  +  +  +  +  +  +"
+                                    , "X.  .  .  .  .  . X"
+                                    , "+==+==+==+==+==+==+"
                                     , ""
                                     , "0: Player (0, 0)"
                                     , "1: Player (2, 2)"
@@ -61,7 +56,7 @@ empty_expected = intercalate "\n" $ [ "+  +  +  +  +  +"
 test_show = TestCase $ do
     assertEqual "empty labyrinth"
         empty_expected $
-        show empty_labyrinth
+        show $ empty_labyrinth
 
 assertMoveUpdates :: String -> Labyrinth -> Move -> MoveResult -> State Labyrinth () -> Assertion
 assertMoveUpdates message initialLab move result labUpdate = do
@@ -83,4 +78,25 @@ test_move = TestCase $ do
         (MoveRes [GoR $ WentOnto Land])
         $ do
             updS (player 0 ~> position) (Pos 0 1)
+            updS currentPlayer 1
+
+test_grenade = TestCase $ do
+    assertMoveUpdates "grenade wall"
+        walled_labyrinth
+        (Move [Grenade R])
+        (MoveRes [GrenadeR GrenadeOK])
+        $ do
+            updS (wall (Pos 0 0) R) NoWall
+            updS currentPlayer 1
+    assertMoveUpdates "grenade no wall"
+        empty_labyrinth
+        (Move [Grenade R])
+        (MoveRes [GrenadeR GrenadeOK])
+        $ do
+            updS currentPlayer 1
+    assertMoveUpdates "grenade hard wall"
+        walled_labyrinth
+        (Move [Grenade L])
+        (MoveRes [GrenadeR GrenadeOK])
+        $ do
             updS currentPlayer 1

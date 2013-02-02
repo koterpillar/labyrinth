@@ -32,3 +32,14 @@ performAction (Go dir) = do
         return $ GoR $ WentOnto nc
     else
         return $ GoR HitWall
+
+performAction (Grenade Next) = return $ ActionError "Cannot throw grenades in that direction."
+performAction (Grenade dir) = do
+    pi <- getS currentPlayer
+    pos <- getS (player pi ~> position)
+    w <- getS (wall pos dir)
+    if w /= HardWall then do
+        updS (wall pos dir) NoWall
+    else return ()
+    return $ GrenadeR GrenadeOK
+

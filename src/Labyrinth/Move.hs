@@ -1,6 +1,7 @@
 module Labyrinth.Move where
 
 import Labyrinth.Map
+import Labyrinth.Show
 
 data Action = Go Direction
             | Shoot Direction
@@ -27,7 +28,8 @@ data GrenadeResult = GrenadeOK
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
+                  | ActionError String
                   deriving (Eq, Show)
 
-data MoveResult = MoveRes [ActionResult]
+data MoveResult = MoveRes [ActionResult] | MoveError String
      deriving (Eq, Show)

@@ -27,7 +27,7 @@ data Position = Pos { pX :: Int
 instance Show Position where
     show (Pos x y) = "(" ++ (show x) ++ ", " ++ (show y) ++ ")"
 
-data Direction = L | R | U | D | Next
+data Direction = L | R | U | D
                  deriving (Eq, Show)
 
 advance :: Position -> Direction -> Position
@@ -35,7 +35,6 @@ advance (Pos x y) L = Pos (x - 1) y
 advance (Pos x y) U = Pos x (y - 1)
 advance (Pos x y) R = Pos (x + 1) y
 advance (Pos x y) D = Pos x (y + 1)
-advance (Pos x y) Next = error "Cannot advance in Next direction."
 
 data Treasure = TrueTreasure | FakeTreasure
                 deriving (Eq, Show)
@@ -100,7 +99,6 @@ wallV :: Position -> Peek Labyrinth Wall
 wallV (Pos x y) = wallsV ~> listP x ~> listP y
 
 wall :: Position -> Direction -> Peek Labyrinth Wall
-wall _ Next = error "No walls in Next direction."
 wall p U = wallH p
 wall p L = wallV p
 wall p D = wallH (advance p D)

@@ -76,13 +76,13 @@ assertMoveUpdates message initialLab move result labUpdate = do
 test_move = TestCase $ do
     assertMoveUpdates "movement only - hit wall"
         walled_labyrinth
-        (Move [Go D])
+        (Move [goTowards D])
         (MoveRes [GoR HitWall])
         $ do
             updS currentPlayer 1
     assertMoveUpdates "movement only - went onto land"
         empty_labyrinth
-        (Move [Go D])
+        (Move [goTowards D])
         (MoveRes [GoR $ WentOnto Land])
         $ do
             updS (player 0 ~> position) (Pos 0 1)
@@ -121,7 +121,7 @@ test_grenade = TestCase $ do
 test_combined = TestCase $ do
     assertMoveUpdates "move then grenade"
         walled_labyrinth
-        (Move [Grenade R, Go R])
+        (Move [Grenade R, goTowards R])
         (MoveRes [GrenadeR GrenadeOK, GoR $ WentOnto Land])
         $ do
             updS (player 0 ~> position) (Pos 1 0)

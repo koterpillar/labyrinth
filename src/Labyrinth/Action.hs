@@ -8,20 +8,17 @@ import Labyrinth.Move
 import Peeker
 
 performMove :: Move -> State Labyrinth MoveResult
-performMove (Move []) = do
+performMove (Move actions) = do
+    actionRes <- forM actions performAction
     l <- get
     current <- getS currentPlayer
     let pCount = playerCount l
     let next = (current + 1) `mod` pCount
     updS currentPlayer next
-    return $ MoveRes []
-performMove (Move (act:acts)) = do
-    ar <- performAction act
-    (MoveRes ars) <- performMove $ Move acts
-    return $ MoveRes $ ar:ars
+    return $ MoveRes actionRes
 
 performAction :: Action -> State Labyrinth ActionResult
-performAction (Go dir) = do
+performAction (Go (Towards dir)) = do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     w <- getS (wall pos dir)
@@ -33,7 +30,6 @@ performAction (Go dir) = do
     else
         return $ GoR HitWall
 
-performAction (Grenade Next) = return $ ActionError "Cannot throw grenades in that direction."
 performAction (Grenade dir) = do
     pi <- getS currentPlayer
     g <- getS (player pi ~> grenades)

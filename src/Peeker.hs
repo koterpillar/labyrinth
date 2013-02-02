@@ -4,10 +4,14 @@ module Peeker ( Peek
               , (~>)
               , getP
               , updP
+              , getS
+              , updS
               , liftP
               , listP
               , derivePeek
               ) where
+
+import Control.Monad.State
 
 import Language.Haskell.TH hiding (listP)
 
@@ -22,6 +26,12 @@ getP p = fst . p
 
 updP :: Peek a b -> a -> b -> a
 updP p = snd . p
+
+getS :: Peek a b -> State a b
+getS p = get >>= return . getP p
+
+updS :: Peek a b -> b -> State a ()
+updS p v = modify $ flip (updP p) v
 
 liftP :: Peek a a
 liftP x = (x, id)

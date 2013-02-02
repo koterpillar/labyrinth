@@ -2,6 +2,8 @@
 
 import Peeker
 
+import Control.Monad.State
+
 import Test.HUnit
 
 data Wrap2 a = Wrap2 (Wrap a)
@@ -30,6 +32,7 @@ main = runTestTT tests
 
 tests = TestList [ test_getter
                  , test_updater
+                 , test_state
                  , test_composition
                  , test_lift
                  , test_list
@@ -59,6 +62,14 @@ test_updater = TestCase $ do
     assertEqual "update value"
         (Wrap Bar) $
         updP p2 (Wrap Foo) Bar
+
+test_state = TestCase $ do
+    assertEqual "value gotten from state monad"
+        Foo $
+        evalState (getS p2) (Wrap Foo)
+    assertEqual "value updated in state monad"
+        (Wrap Bar) $
+        execState (updS p2 Bar) (Wrap Foo)
 
 test_lift = TestCase $ do
     assertEqual "getting lifted value"

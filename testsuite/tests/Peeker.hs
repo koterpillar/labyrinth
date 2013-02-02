@@ -1,14 +1,8 @@
+{-# Language TemplateHaskell #-}
+
 import Peeker
 
 import Test.HUnit
-
-main = runTestTT tests
-
-tests = TestList [ test_getter
-                 , test_updater
-                 , test_composition
-                 , test_lift
-                 ]
 
 data Wrap2 a = Wrap2 (Wrap a)
              deriving (Eq, Show)
@@ -18,6 +12,28 @@ data Wrap a = Wrap a
 
 data Flip = Foo | Bar
             deriving (Eq, Show)
+
+data Fruit = Apple | Orange
+             deriving (Eq, Show)
+
+data Animal = Cat | Fox
+              deriving (Eq, Show)
+
+data Rec = Rec { fruit_  :: Fruit
+               , animal_ :: Animal
+               }
+               deriving (Eq, Show)
+
+derivePeek ''Rec
+
+main = runTestTT tests
+
+tests = TestList [ test_getter
+                 , test_updater
+                 , test_composition
+                 , test_lift
+                 , test_template
+                 ]
 
 p1 :: Peek (Wrap2 a) (Wrap a)
 p1 (Wrap2 x) = (x, Wrap2)
@@ -50,3 +66,18 @@ test_lift = TestCase $ do
     assertEqual "updating lifted value"
         Bar $
         upd liftP Foo Bar
+
+test_template = TestCase $ do
+    let rec = Rec Apple Cat
+    assertEqual "get first derived value"
+        Apple $
+        get fruit rec
+    assertEqual "get second derived value"
+        Cat $
+        get animal rec
+    assertEqual "put derived value"
+        (Rec Orange Cat) $
+        upd fruit rec Orange
+    assertEqual "put second derived value"
+        (Rec Apple Fox) $
+        upd animal rec Fox

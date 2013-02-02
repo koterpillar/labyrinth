@@ -14,6 +14,7 @@ tests = TestList [ test_advance
                  , test_show
                  , test_move
                  , test_grenade
+                 , test_combined
                  ]
 
 test_advance = TestCase $ do
@@ -29,12 +30,17 @@ player_two = initialPlayer $ Pos 2 2
 
 empty_labyrinth = emptyLabyrinth w h [Pos 0 0, Pos 2 2]
 
-walled_labyrinth = (flip execState) empty_labyrinth $ do
-    forM_ [0..w-2] $
+applyState = flip execState
+
+walled_labyrinth = applyState empty_labyrinth $ do
+    forM_ [0..w-1] $
         \x -> forM_ [0..h-2] $
             \y -> do
-                updS (wall (Pos x y) R) Wall
                 updS (wall (Pos x y) D) Wall
+    forM_ [0..w-2] $
+        \x -> forM_ [0..h-1] $
+            \y -> do
+                updS (wall (Pos x y) R) Wall
 
 empty_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
                                     , "X.  .  .  .  .  . X"
@@ -48,10 +54,12 @@ empty_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
                                     , "X.  .  .  .  .  . X"
                                     , "+==+==+==+==+==+==+"
                                     , ""
-                                    , "0: Player (0, 0)"
-                                    , "1: Player (2, 2)"
+                                    , "0: Player (0, 0), 3B, 3G"
+                                    , "1: Player (2, 2), 3B, 3G"
                                     , "Current player: 0"
                                     ]
+
+interesting_labyrinth = empty_labyrinth
 
 test_show = TestCase $ do
     assertEqual "empty labyrinth"
@@ -81,22 +89,42 @@ test_move = TestCase $ do
             updS currentPlayer 1
 
 test_grenade = TestCase $ do
-    assertMoveUpdates "grenade wall"
+    assertMoveUpdates "grenade, wall"
         walled_labyrinth
         (Move [Grenade R])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (wall (Pos 0 0) R) NoWall
+            updS (player 0 ~> grenades) 2
             updS currentPlayer 1
-    assertMoveUpdates "grenade no wall"
+    assertMoveUpdates "grenade, no wall"
         empty_labyrinth
         (Move [Grenade R])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
+            updS (player 0 ~> grenades) 2
             updS currentPlayer 1
-    assertMoveUpdates "grenade hard wall"
+    assertMoveUpdates "grenade, hard wall"
         walled_labyrinth
         (Move [Grenade L])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
+            updS (player 0 ~> grenades) 2
+            updS currentPlayer 1
+    assertMoveUpdates "no grenades"
+        (applyState walled_labyrinth $ updS (player 0 ~> grenades) 0)
+        (Move [Grenade R])
+        (MoveRes [GrenadeR NoGrenades])
+        $ do
+            updS currentPlayer 1
+
+test_combined = TestCase $ do
+    assertMoveUpdates "move then grenade"
+        walled_labyrinth
+        (Move [Grenade R, Go R])
+        (MoveRes [GrenadeR GrenadeOK, GoR $ WentOnto Land])
+        $ do
+            updS (player 0 ~> position) (Pos 1 0)
+            updS (player 0 ~> grenades) 2
+            updS (wall (Pos 0 0) R) NoWall
             updS currentPlayer 1

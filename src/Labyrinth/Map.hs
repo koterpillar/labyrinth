@@ -27,7 +27,10 @@ data Wall = NoWall | Wall | HardWall
 data Position = Pos { pX :: Int
                     , pY :: Int
                     }
-                deriving (Eq, Show)
+                deriving (Eq)
+
+instance Show Position where
+    show (Pos x y) = "(" ++ (show x) ++ ", " ++ (show y) ++ ")"
 
 data Direction = L | R | U | D | Next
                  deriving (Eq, Show)
@@ -50,7 +53,7 @@ showV Wall     = "|"
 showV HardWall = "‖"
 
 data Treasure = TrueTreasure | FakeTreasure
-                deriving (Eq)
+                deriving (Eq, Show)
 
 data Player = Player { position_ :: Position
                      , bullets_  :: Int
@@ -60,6 +63,9 @@ data Player = Player { position_ :: Position
               deriving (Eq)
 
 derivePeek ''Player
+
+instance Show Player where
+    show p = "Player " ++ show (position_ p)
 
 -- wallsV and wallsH are considered to be to the left and top of the cells
 data Labyrinth = Labyrinth { cells_         :: [[Cell]]
@@ -112,8 +118,12 @@ showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x
                          showCell :: Labyrinth -> Position -> String
                          showCell l p = show $ getP (cell p) l
 
+showPlayers :: Labyrinth -> [String]
+showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
+    where showPlayer p i = (show i) ++ ": " ++ (show p)
+
 instance Show Labyrinth where
-    show l = intercalate "\n" $ firstLines ++ [lastLine]
+    show l = intercalate "\n" $ firstLines ++ [lastLine] ++ [""] ++ showPlayers l
         where h = labHeight l
               showLine l i = [showWallLine l i, showCellLine l i]
               firstLines = concat $ map (showLine l) [0..h - 1]

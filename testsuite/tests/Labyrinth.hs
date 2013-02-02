@@ -4,6 +4,8 @@ import Control.Monad.State
 
 import Data.List
 
+import Peeker
+
 import Test.HUnit
 
 main = runTestTT tests
@@ -51,6 +53,8 @@ empty_expected = intercalate "\n" $ [ "+  +  +  +  +  +"
                                     , "+  +  +  +  +  +"
                                     , " .  .  .  .  .  "
                                     , "+  +  +  +  +  +"
+                                    , ""
+                                    , "0: Player (0, 0)"
                                     ]
 
 test_show = TestCase $ do
@@ -63,6 +67,7 @@ test_move = TestCase $ do
     assertEqual "movement only - hit wall"
         (MoveRes [GoR $ HitWall], walled_labyrinth) $
         runState (performMove m) walled_labyrinth
+    let empty_lab_updated = updP (player 0 ~> position) empty_labyrinth (Pos 0 1)
     assertEqual "movement only move"
-        (MoveRes [GoR $ WentOnto Land], empty_labyrinth) $
+        (MoveRes [GoR $ WentOnto Land], empty_lab_updated) $
         runState (performMove m) empty_labyrinth

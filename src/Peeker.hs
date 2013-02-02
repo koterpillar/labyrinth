@@ -2,28 +2,32 @@
 
 module Peeker ( Peek
               , (~>)
-              , get
-              , upd
+              , getP
+              , updP
               , liftP
+              , listP
               , derivePeek
               ) where
 
-import Language.Haskell.TH
+import Language.Haskell.TH hiding (listP)
 
 type Peek a b = a -> (b, b -> a)
 
 (~>) :: Peek a b -> Peek b c -> Peek a c
-(~>) p1 p2 x = (get p2 y, upd p1 x . upd p2 y)
-               where y = get p1 x 
+(~>) p1 p2 x = (getP p2 y, updP p1 x . updP p2 y)
+               where y = getP p1 x
 
-get :: Peek a b -> a -> b
-get p = fst . p
+getP :: Peek a b -> a -> b
+getP p = fst . p
 
-upd :: Peek a b -> a -> b -> a
-upd p = snd . p
+updP :: Peek a b -> a -> b -> a
+updP p = snd . p
 
 liftP :: Peek a a
 liftP x = (x, id)
+
+listP :: Int -> Peek [a] a
+listP i l = (l !! i, \y -> take i l ++ [y] ++ drop (i + 1) l)
 
 derivePeek :: Name -> Q [Dec]
 derivePeek rec = do

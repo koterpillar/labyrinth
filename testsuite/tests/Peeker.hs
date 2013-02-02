@@ -32,6 +32,7 @@ tests = TestList [ test_getter
                  , test_updater
                  , test_composition
                  , test_lift
+                 , test_list
                  , test_template
                  ]
 
@@ -42,42 +43,51 @@ p2 :: Peek (Wrap a) a
 p2 (Wrap x) = (x, Wrap)
 
 test_composition = TestCase $ do
-    assertEqual "get via composition"
+    assertEqual "getP via composition"
         Foo $
-        get (p1 ~> p2) $ Wrap2 $ Wrap Foo
+        getP (p1 ~> p2) $ Wrap2 $ Wrap Foo
     assertEqual "set via composition"
         (Wrap2 (Wrap Bar)) $
-        upd (p1 ~> p2) (Wrap2 $ Wrap Foo) Bar
+        updP (p1 ~> p2) (Wrap2 $ Wrap Foo) Bar
 
 test_getter = TestCase $ do
-    assertEqual "get value"
+    assertEqual "getP value"
         Foo $
-        get p2 $ Wrap Foo
+        getP p2 $ Wrap Foo
 
 test_updater = TestCase $ do
     assertEqual "update value"
         (Wrap Bar) $
-        upd p2 (Wrap Foo) Bar
+        updP p2 (Wrap Foo) Bar
 
 test_lift = TestCase $ do
     assertEqual "getting lifted value"
         Foo $
-        get liftP Foo
+        getP liftP Foo
     assertEqual "updating lifted value"
         Bar $
-        upd liftP Foo Bar
+        updP liftP Foo Bar
+
+test_list = TestCase $ do
+    let lst = [10,20,30,40]
+    assertEqual "getting value from a list"
+        30 $
+        getP (listP 2) lst
+    assertEqual "putting value into a list"
+        [10,20,99,40] $
+        updP (listP 2) lst 99
 
 test_template = TestCase $ do
     let rec = Rec Apple Cat
-    assertEqual "get first derived value"
+    assertEqual "getP first derived value"
         Apple $
-        get fruit rec
-    assertEqual "get second derived value"
+        getP fruit rec
+    assertEqual "getP second derived value"
         Cat $
-        get animal rec
+        getP animal rec
     assertEqual "put derived value"
         (Rec Orange Cat) $
-        upd fruit rec Orange
+        updP fruit rec Orange
     assertEqual "put second derived value"
         (Rec Apple Fox) $
-        upd animal rec Fox
+        updP animal rec Fox

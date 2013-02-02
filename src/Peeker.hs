@@ -11,6 +11,10 @@ module Peeker ( Peek
               , derivePeek
               ) where
 
+{-
+TODO: getS clashes with gets from Control.Monad.State. They mean similar
+things, and get is different from getP, which makes things complicated.
+-}
 import Control.Monad.State
 
 import Language.Haskell.TH hiding (listP)

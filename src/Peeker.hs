@@ -27,10 +27,10 @@ getP p = fst . p
 updP :: Peek a b -> a -> b -> a
 updP p = snd . p
 
-getS :: Peek a b -> State a b
+getS :: (MonadState a m) => Peek a b -> m b
 getS p = get >>= return . getP p
 
-updS :: Peek a b -> b -> State a ()
+updS :: (MonadState a m) => Peek a b -> b -> m ()
 updS p v = modify $ flip (updP p) v
 
 liftP :: Peek a a

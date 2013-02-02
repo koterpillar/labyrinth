@@ -6,7 +6,7 @@ import Data.List
 
 import Peeker
 
-import Test.HUnit
+import Test.HUnit hiding (State)
 
 main = runTestTT tests
 
@@ -72,16 +72,24 @@ test_show = TestCase $ do
         empty_expected $
         show empty_labyrinth
 
+assertMoveUpdates :: String -> Labyrinth -> Move -> MoveResult -> State Labyrinth () -> Assertion
+assertMoveUpdates message initialLab move result labUpdate = do
+    let updatedLab = execState labUpdate initialLab
+    assertEqual message
+        (result, updatedLab) $
+        runState (performMove move) initialLab
+
 test_move = TestCase $ do
-    let m = Move $ [Go D]
-    let walled_lab_updated = (flip execState) walled_labyrinth $ do
-        updS currentPlayer 1
-    assertEqual "movement only - hit wall"
-        (MoveRes [GoR $ HitWall], walled_lab_updated) $
-        runState (performMove m) walled_labyrinth
-    let empty_lab_updated = (flip execState) empty_labyrinth $ do
-        updS (player 0 ~> position) (Pos 0 1)
-        updS currentPlayer 1
-    assertEqual "movement only move"
-        (MoveRes [GoR $ WentOnto Land], empty_lab_updated) $
-        runState (performMove m) empty_labyrinth
+    assertMoveUpdates "movement only - hit wall"
+        walled_labyrinth
+        (Move [Go D])
+        (MoveRes [GoR HitWall])
+        $ do
+            updS currentPlayer 1
+    assertMoveUpdates "movement only - went onto land"
+        empty_labyrinth
+        (Move [Go D])
+        (MoveRes [GoR $ WentOnto Land])
+        $ do
+            updS (player 0 ~> position) (Pos 0 1)
+            updS currentPlayer 1

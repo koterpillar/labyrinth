@@ -2,6 +2,8 @@ module Labyrinth.Action where
 
 import Control.Monad.State
 
+import Data.Maybe
+
 import Labyrinth.Map
 import Labyrinth.Move
 
@@ -27,6 +29,13 @@ transferAmmo maxAmount from to = do
     updS to has'
     return found
 
+performCellActions :: CellType -> Position -> Int -> State Labyrinth (Maybe Position)
+performCellActions Land _ _ = return Nothing
+performCellActions Armory _ pi = do
+    updS (player pi ~> pbullets) maxBullets
+    updS (player pi ~> pgrenades) maxGrenades
+    return Nothing
+
 performAction :: Action -> State Labyrinth ActionResult
 performAction (Go (Towards dir)) = do
     pi <- getS currentPlayer
@@ -36,22 +45,33 @@ performAction (Go (Towards dir)) = do
         let npos = advance pos dir
         updS (player pi ~> position) npos
         ct <- getS (cell npos ~> ctype)
+        -- Perform cell-type-specific actions
+        npos' <- performCellActions ct npos pi
+        let npos'' = fromMaybe npos npos'
+        -- If transported, determine the new cell type
+        nct <- if isJust npos' then do
+            nct' <- getS (cell npos'' ~> ctype)
+            return $ Just nct'
+        else
+            return Nothing
+        -- Pick ammo
         cb <- transferAmmo maxBullets
-            (cell npos ~> cbullets)
+            (cell npos'' ~> cbullets)
             (player pi ~> pbullets)
         cg <- transferAmmo maxGrenades
-            (cell npos ~> cgrenades)
+            (cell npos'' ~> cgrenades)
             (player pi ~> pgrenades)
-        ctr <- getS (cell npos ~> ctreasures)
+        -- Pick treasures
+        ctr <- getS (cell npos'' ~> ctreasures)
         ptr <- getS (player pi ~> ptreasure)
         if and [ptr == Nothing, length ctr > 0] then do
             let ctr' = tail ctr
             let ptr' = Just $ head ctr
-            updS (cell npos ~> ctreasures) ctr'
+            updS (cell npos'' ~> ctreasures) ctr'
             updS (player pi ~> ptreasure) ptr'
         else
             return ()
-        return $ GoR $ Went ct cb cg (length ctr) Nothing
+        return $ GoR $ Went ct cb cg (length ctr) nct
     else
         return $ GoR HitWall
 

@@ -7,8 +7,18 @@ import Control.Monad.State
 
 import Peeker
 
+data Direction = L | R | U | D
+                 deriving (Eq, Show)
+
 data CellType = Land
-                deriving (Eq)
+              | Pit { pitNumber_ :: Int }
+              | River { riverDirection_ :: Direction }
+              | RiverDelta
+              | Armory
+              | Hospital
+              deriving (Eq)
+
+derivePeek ''CellType
 
 data Treasure = TrueTreasure | FakeTreasure
                 deriving (Eq, Show)
@@ -39,9 +49,6 @@ data Position = Pos { pX :: Int
 
 instance Show Position where
     show (Pos x y) = "(" ++ (show x) ++ ", " ++ (show y) ++ ")"
-
-data Direction = L | R | U | D
-                 deriving (Eq, Show)
 
 advance :: Position -> Direction -> Position
 advance (Pos x y) L = Pos (x - 1) y

@@ -13,6 +13,7 @@ main = runTestTT tests
 tests = TestList [ test_advance
                  , test_show
                  , test_move
+                 , test_move_to_armory
                  , test_found_ammo
                  , test_found_treasure
                  , test_grenade
@@ -61,12 +62,15 @@ empty_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
                                     , "Current player: 0"
                                     ]
 
-interesting_labyrinth = empty_labyrinth
-
 test_show = TestCase $ do
     assertEqual "empty labyrinth"
         empty_expected $
         show $ empty_labyrinth
+
+interesting_labyrinth = applyState empty_labyrinth $ do
+    updS (player 0 ~> position) (Pos 1 1)
+    updS (player 1 ~> position) (Pos 3 3)
+    updS (cell (Pos 1 0) ~> ctype) Armory
 
 assertMoveUpdates :: String -> Labyrinth -> Move -> MoveResult -> State Labyrinth () -> Assertion
 assertMoveUpdates message initialLab move result labUpdate = do
@@ -88,6 +92,20 @@ test_move = TestCase $ do
         (MoveRes [GoR $ Went Land 0 0 0 Nothing])
         $ do
             updS (player 0 ~> position) (Pos 0 1)
+            updS currentPlayer 1
+
+test_move_to_armory = TestCase $ do
+    let armory_missing_ammo = applyState interesting_labyrinth $ do
+        updS (player 0 ~> pbullets) 2
+        updS (player 0 ~> pgrenades) 1
+    assertMoveUpdates "move to armoury"
+        armory_missing_ammo
+        (Move [goTowards U])
+        (MoveRes [GoR $ Went Armory 0 0 0 Nothing])
+        $ do
+            updS (player 0 ~> position) (Pos 1 0)
+            updS (player 0 ~> pbullets) 3
+            updS (player 0 ~> pgrenades) 3
             updS currentPlayer 1
 
 test_found_ammo = TestCase $ do

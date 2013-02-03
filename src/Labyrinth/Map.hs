@@ -5,17 +5,20 @@ module Labyrinth.Map where
 import Control.Monad
 import Control.Monad.State
 
+import Data.List
+import Data.Maybe
+
 import Peeker
 
 data Direction = L | R | U | D
                  deriving (Eq, Show)
 
 data CellType = Land
+              | Armory
+              | Hospital
               | Pit { pitNumber_ :: Int }
               | River { riverDirection_ :: Direction }
               | RiverDelta
-              | Armory
-              | Hospital
               deriving (Eq)
 
 derivePeek ''CellType
@@ -129,3 +132,24 @@ wall p R = wallV (advance p R)
 
 player :: Int -> Peek Labyrinth Player
 player i = players ~> listP i
+
+allPositions :: Labyrinth -> [Position]
+allPositions l = [Pos x y | x <- [0..w - 1], y <- [0..h - 1]]
+    where w = labWidth l
+          h = labHeight l
+
+allCells :: Labyrinth -> [Cell]
+allCells l = map (\p -> getP (cell p) l) $ allPositions l
+
+allPosCells :: Labyrinth -> [(Position, Cell)]
+allPosCells l = zipWith (,) (allPositions l) (allCells l)
+
+pitCount :: Labyrinth -> Int
+pitCount = length . filter (isPit . ctype_) . allCells
+    where isPit (Pit _) = True
+          isPit _       = False
+
+pit :: Int -> Labyrinth -> Position
+pit i = fst . fromJust . find (isIthPit . ctype_ . snd) . allPosCells
+    where isIthPit (Pit j) = i == j
+          isIthPit _       = False

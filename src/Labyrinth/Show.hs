@@ -7,7 +7,15 @@ import Data.List
 import Peeker
 
 instance Show CellType where
-    show Land = "."
+    show Land       = "."
+    show Armory     = "A"
+    show Hospital   = "H"
+    show (Pit i)    = show (i + 1)
+    show (River L)  = "<"
+    show (River R)  = ">"
+    show (River U)  = "^"
+    show (River D)  = "v"
+    show RiverDelta = "O"
 
 instance Show Cell where
     show c = show (ctype_ c) ++ " "

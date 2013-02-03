@@ -35,6 +35,11 @@ performCellActions Armory _ pi = do
     updS (player pi ~> pbullets) maxBullets
     updS (player pi ~> pgrenades) maxGrenades
     return Nothing
+performCellActions (Pit i) _ pi = do
+    npits <- gets pitCount
+    let i' = (i + 1) `mod` npits
+    npos <- gets (pit i')
+    return $ Just npos
 
 performAction :: Action -> State Labyrinth ActionResult
 performAction (Go (Towards dir)) = do
@@ -48,6 +53,7 @@ performAction (Go (Towards dir)) = do
         -- Perform cell-type-specific actions
         npos' <- performCellActions ct npos pi
         let npos'' = fromMaybe npos npos'
+        updS (player pi ~> position) npos''
         -- If transported, determine the new cell type
         nct <- if isJust npos' then do
             nct' <- getS (cell npos'' ~> ctype)
@@ -71,7 +77,8 @@ performAction (Go (Towards dir)) = do
             updS (player pi ~> ptreasure) ptr'
         else
             return ()
-        return $ GoR $ Went ct cb cg (length ctr) nct
+        let nctr = (fmap ctResult) nct
+        return $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
     else
         return $ GoR HitWall
 

@@ -21,11 +21,27 @@ goTowards = Go . Towards
 data Move = Move [Action]
             deriving (Eq, Show)
 
-data GoResult = Went { onto_           :: CellType
+data CellTypeResult = LandR
+                    | ArmoryR
+                    | HospitalR
+                    | PitR
+                    | RiverR
+                    | RiverDeltaR
+                    deriving (Eq, Show)
+
+ctResult :: CellType -> CellTypeResult
+ctResult Land       = LandR
+ctResult Armory     = ArmoryR
+ctResult Hospital   = HospitalR
+ctResult (Pit _)    = PitR
+ctResult (River _)  = RiverR
+ctResult RiverDelta = RiverDeltaR
+
+data GoResult = Went { onto_           :: CellTypeResult
                      , foundBullets_   :: Int
                      , foundGrenades_  :: Int
                      , foundTreasures_ :: Int
-                     , transportedTo_  :: Maybe CellType
+                     , transportedTo_  :: Maybe CellTypeResult
                      }
               | HitWall {}
               deriving (Eq, Show)

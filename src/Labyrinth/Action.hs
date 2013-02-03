@@ -29,17 +29,21 @@ transferAmmo maxAmount from to = do
     updS to has'
     return found
 
-performCellActions :: CellType -> Position -> Int -> State Labyrinth (Maybe Position)
-performCellActions Land _ _ = return Nothing
-performCellActions Armory _ pi = do
+afterMove :: CellType -> Position -> Int -> State Labyrinth (Maybe Position)
+afterMove Land _ _ = return Nothing
+afterMove Armory _ pi = do
     updS (player pi ~> pbullets) maxBullets
     updS (player pi ~> pgrenades) maxGrenades
     return Nothing
-performCellActions (Pit i) _ pi = do
+afterMove (Pit i) _ pi = do
     npits <- gets pitCount
     let i' = (i + 1) `mod` npits
     npos <- gets (pit i')
     return $ Just npos
+afterMove (River d) npos pi = do
+    let npos' = advance npos d
+    return $ Just npos'
+afterMove RiverDelta _ _ = return Nothing
 
 performAction :: Action -> State Labyrinth ActionResult
 performAction (Go (Towards dir)) = do
@@ -51,7 +55,7 @@ performAction (Go (Towards dir)) = do
         updS (player pi ~> position) npos
         ct <- getS (cell npos ~> ctype)
         -- Perform cell-type-specific actions
-        npos' <- performCellActions ct npos pi
+        npos' <- afterMove ct npos pi
         let npos'' = fromMaybe npos npos'
         updS (player pi ~> position) npos''
         -- If transported, determine the new cell type

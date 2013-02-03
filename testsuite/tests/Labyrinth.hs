@@ -15,6 +15,7 @@ tests = TestList [ test_advance
                  , test_move
                  , test_move_to_armory
                  , test_move_to_pit
+                 , test_move_to_river
                  , test_found_ammo
                  , test_found_treasure
                  , test_grenade
@@ -152,6 +153,37 @@ test_move_to_pit = TestCase $ do
             updS (player 1 ~> pgrenades) 1
             updS currentPlayer 0
             updS (cell (Pos 4 0) ~> cgrenades) 0
+
+test_move_to_river = TestCase $ do
+    let lab = applyState interesting_labyrinth $ do
+        updS (cell (Pos 2 1) ~> cbullets) 1
+        updS (cell (Pos 2 2) ~> cgrenades) 1
+        updS (player 0 ~> pgrenades) 0
+        updS (player 0 ~> pbullets) 0
+    assertMoveUpdates "went into river"
+        lab
+        (Move [goTowards R])
+        (MoveRes [GoR $ Went RiverR 0 1 0 (Just RiverR)])
+        $ do
+            updS (player 0 ~> position) (Pos 2 2)
+            updS (player 0 ~> pgrenades) 1
+            updS currentPlayer 1
+            updS (cell (Pos 2 2) ~> cgrenades) 0
+    let lab2 = applyState interesting_labyrinth $ do
+        updS (cell (Pos 2 2) ~> cbullets) 1
+        updS (cell (Pos 1 2) ~> cgrenades) 1
+        updS (player 0 ~> position) (Pos 2 3)
+        updS (player 0 ~> pgrenades) 0
+        updS (player 0 ~> pbullets) 0
+    assertMoveUpdates "went into river, carried into delta"
+        lab2
+        (Move [goTowards U])
+        (MoveRes [GoR $ Went RiverR 0 1 0 (Just RiverDeltaR)])
+        $ do
+            updS (player 0 ~> position) (Pos 1 2)
+            updS (player 0 ~> pgrenades) 1
+            updS currentPlayer 1
+            updS (cell (Pos 1 2) ~> cgrenades) 0
 
 test_found_ammo = TestCase $ do
     let empty_ammo = applyState empty_labyrinth $ do

@@ -13,6 +13,8 @@ main = runTestTT tests
 tests = TestList [ test_advance
                  , test_show
                  , test_move
+                 , test_found_ammo
+                 , test_found_treasure
                  , test_grenade
                  , test_combined
                  ]
@@ -87,13 +89,15 @@ test_move = TestCase $ do
         $ do
             updS (player 0 ~> position) (Pos 0 1)
             updS currentPlayer 1
-    let empty_spent_ammo = applyState empty_labyrinth $ do
+
+test_found_ammo = TestCase $ do
+    let empty_ammo = applyState empty_labyrinth $ do
         updS (player 0 ~> pbullets) 0
         updS (player 0 ~> pgrenades) 0
         updS (cell (Pos 0 1) ~> cbullets) 2
         updS (cell (Pos 0 1) ~> cgrenades) 1
-    assertMoveUpdates "movement - found bullets and grenades"
-        empty_spent_ammo
+    assertMoveUpdates "found bullets and grenades"
+        empty_ammo
         (Move [goTowards D])
         (MoveRes [GoR $ Went Land 2 1 0 Nothing])
         $ do
@@ -102,6 +106,45 @@ test_move = TestCase $ do
             updS (player 0 ~> pgrenades) 1
             updS (cell (Pos 0 1) ~> cbullets) 0
             updS (cell (Pos 0 1) ~> cgrenades) 0
+            updS currentPlayer 1
+    let empty_ammo_2 = applyState empty_labyrinth $ do
+        updS (player 0 ~> pbullets) 2
+        updS (player 0 ~> pgrenades) 3
+        updS (cell (Pos 0 1) ~> cbullets) 4
+        updS (cell (Pos 0 1) ~> cgrenades) 5
+    assertMoveUpdates "found too much"
+        empty_ammo_2
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went Land 4 5 0 Nothing])
+        $ do
+            updS (player 0 ~> position) (Pos 0 1)
+            updS (player 0 ~> pbullets) 3
+            updS (player 0 ~> pgrenades) 3
+            updS (cell (Pos 0 1) ~> cbullets) 3
+            updS (cell (Pos 0 1) ~> cgrenades) 5
+            updS currentPlayer 1
+
+test_found_treasure = TestCase $ do
+    let empty_treasure = applyState empty_labyrinth $ do
+        updS (cell (Pos 0 1) ~> ctreasures) [FakeTreasure]
+    assertMoveUpdates "found a treasure"
+        empty_treasure
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went Land 0 0 1 Nothing])
+        $ do
+            updS (player 0 ~> position) (Pos 0 1)
+            updS (player 0 ~> ptreasure) (Just FakeTreasure)
+            updS (cell (Pos 0 1) ~> ctreasures) []
+            updS currentPlayer 1
+    let empty_treasure_2 = applyState empty_labyrinth $ do
+        updS (player 0 ~> ptreasure) (Just FakeTreasure)
+        updS (cell (Pos 0 1) ~> ctreasures) [TrueTreasure]
+    assertMoveUpdates "found a treasure while having one already"
+        empty_treasure_2
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went Land 0 0 1 Nothing])
+        $ do
+            updS (player 0 ~> position) (Pos 0 1)
             updS currentPlayer 1
 
 test_grenade = TestCase $ do

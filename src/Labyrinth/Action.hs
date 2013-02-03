@@ -16,15 +16,13 @@ performMove (Move actions) = do
     updS currentPlayer next
     return $ MoveRes actionRes
 
-transferAmmo :: Int -> (Int, Int) -> (Int, Int)
-transferAmmo maxAmount (has, found) = (has + amount, found - amount)
-    where amount = min found $ maxAmount - has
-
-transferAmmoFromTo :: Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
-transferAmmoFromTo maxAmount from to = do
+transferAmmo :: Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
+transferAmmo maxAmount from to = do
     found <- getS from
     has <- getS to
-    let (has', found') = transferAmmo maxAmount (has, found)
+    let amount = min found $ maxAmount - has
+    let found' = found - amount
+    let has' = has + amount
     updS from found'
     updS to has'
     return found
@@ -38,13 +36,22 @@ performAction (Go (Towards dir)) = do
         let npos = advance pos dir
         updS (player pi ~> position) npos
         ct <- getS (cell npos ~> ctype)
-        cb <- transferAmmoFromTo maxBullets
+        cb <- transferAmmo maxBullets
             (cell npos ~> cbullets)
             (player pi ~> pbullets)
-        cg <- transferAmmoFromTo maxGrenades
+        cg <- transferAmmo maxGrenades
             (cell npos ~> cgrenades)
             (player pi ~> pgrenades)
-        return $ GoR $ Went ct cb cg 0 Nothing
+        ctr <- getS (cell npos ~> ctreasures)
+        ptr <- getS (player pi ~> ptreasure)
+        if and [ptr == Nothing, length ctr > 0] then do
+            let ctr' = tail ctr
+            let ptr' = Just $ head ctr
+            updS (cell npos ~> ctreasures) ctr'
+            updS (player pi ~> ptreasure) ptr'
+        else
+            return ()
+        return $ GoR $ Went ct cb cg (length ctr) Nothing
     else
         return $ GoR HitWall
 

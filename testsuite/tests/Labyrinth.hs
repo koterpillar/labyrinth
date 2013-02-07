@@ -13,6 +13,7 @@ main = runTestTT tests
 tests = TestList [ test_advance
                  , test_show_labyrinth
                  , test_show_move
+                 , test_show_move_result
                  , test_move
                  , test_move_to_armory
                  , test_move_to_pit
@@ -102,22 +103,38 @@ test_show_labyrinth = TestCase $ do
         interesting_expected $
         show interesting_labyrinth
 
-assertShowMove :: String -> Move -> Assertion
-assertShowMove message move = assertEqual message message $ show move
+assertShowEquals :: (Show a) => String -> a -> Assertion
+assertShowEquals message move = assertEqual message message $ show move
 
 test_show_move = TestCase $ do
-    assertShowMove "skip" $
+    assertShowEquals "skip" $
         Move []
-    assertShowMove "go left" $
+    assertShowEquals "go left" $
         Move [goTowards L]
-    assertShowMove "go right" $
+    assertShowEquals "go right" $
         Move [goTowards R]
-    assertShowMove "go down" $
+    assertShowEquals "go down" $
         Move [goTowards D]
-    assertShowMove "go up" $
+    assertShowEquals "go up" $
         Move [goTowards U]
-    assertShowMove "shoot left, go up, grenade left" $
+    assertShowEquals "shoot left, go up, grenade left" $
         Move [Shoot L, goTowards U, Grenade L]
+
+test_show_move_result = TestCase $ do
+    assertShowEquals "ok" $
+        MoveRes []
+    assertShowEquals "hit a wall" $
+        MoveRes [GoR $ HitWall]
+    assertShowEquals "went onto land" $
+        MoveRes [GoR $ Went LandR 0 0 0 Nothing]
+    assertShowEquals "went onto land, found a bullet" $
+        MoveRes [GoR $ Went LandR 1 0 0 Nothing]
+    assertShowEquals "went onto land, found 2 bullets" $
+        MoveRes [GoR $ Went LandR 2 0 0 Nothing]
+    assertShowEquals "went onto land, found 2 bullets, 3 grenades and a treasure" $
+        MoveRes [GoR $ Went LandR 2 3 1 Nothing]
+    assertShowEquals "went onto river, was transported to river, found 2 grenades" $
+        MoveRes [GoR $ Went RiverR 0 2 0 (Just RiverR)]
 
 assertMoveUpdates :: String -> Labyrinth -> Move -> MoveResult -> State Labyrinth () -> Assertion
 assertMoveUpdates message initialLab move result labUpdate = do

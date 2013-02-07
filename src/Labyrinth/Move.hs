@@ -26,7 +26,7 @@ data CellTypeResult = LandR
                     | PitR
                     | RiverR
                     | RiverDeltaR
-                    deriving (Eq, Show)
+                    deriving (Eq)
 
 ctResult :: CellType -> CellTypeResult
 ctResult Land       = LandR
@@ -43,7 +43,7 @@ data GoResult = Went { onto_           :: CellTypeResult
                      , transportedTo_  :: Maybe CellTypeResult
                      }
               | HitWall {}
-              deriving (Eq, Show)
+              deriving (Eq)
 
 derivePeek ''GoResult
 
@@ -60,7 +60,7 @@ data GrenadeResult = GrenadeOK
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
-                  deriving (Eq, Show)
+                  deriving (Eq)
 
 data MoveResult = MoveRes [ActionResult]
-     deriving (Eq, Show)
+     deriving (Eq)

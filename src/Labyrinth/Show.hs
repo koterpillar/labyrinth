@@ -3,7 +3,10 @@ module Labyrinth.Show where
 import Labyrinth.Map
 import Labyrinth.Move
 
+import Control.Monad.Writer
+
 import Data.List
+import Data.Maybe
 
 import Peeker
 
@@ -94,3 +97,44 @@ instance Show Action where
 instance Show Move where
     show (Move []) = "skip"
     show (Move acts) = intercalate ", " $ map show acts
+
+instance Show CellTypeResult where
+    show LandR = "land"
+    show ArmoryR = "armory"
+    show HospitalR = "hospital"
+    show PitR = "pit"
+    show RiverR = "river"
+    show RiverDeltaR = "delta"
+
+instance Show ActionResult where
+    show (GoR HitWall) = "hit a wall"
+    show (GoR went) = execWriter $ do
+            tell "went onto "
+            tell $ show $ getP onto went
+            let transported = getP transportedTo went
+            when (isJust transported) $ do
+                tell ", was transported to "
+                tell $ show $ fromJust $ transported
+            let b = getP foundBullets went
+            let g = getP foundGrenades went
+            let t = getP foundTreasures went
+            let found = b > 0 || g > 0 || t > 0
+            when found $ do
+                tell ", found "
+                tell $
+                    commaList $
+                    map (uncurry pluralize) $
+                    filter ((0 <) . fst) $
+                    [(b, "bullet"), (g, "grenade"), (t, "treasure")]
+            return ()
+        where pluralize 1 str = "a " ++ str
+              pluralize n str = (show n) ++ " " ++ str ++ "s"
+              commaList [] = ""
+              commaList [x] = x
+              commaList xs = intercalate ", " (take (n - 1) xs)
+                          ++ " and " ++ xs !! (n - 1)
+                          where n = length xs
+
+instance Show MoveResult where
+    show (MoveRes []) = "ok"
+    show (MoveRes rs) = intercalate ", " $ map show rs

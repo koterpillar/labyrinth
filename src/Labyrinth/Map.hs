@@ -24,7 +24,7 @@ data CellType = Land
 derivePeek ''CellType
 
 data Treasure = TrueTreasure | FakeTreasure
-                deriving (Eq, Show)
+                deriving (Eq)
 
 data Cell = Cell { ctype_      :: CellType
                  , cbullets_   :: Int

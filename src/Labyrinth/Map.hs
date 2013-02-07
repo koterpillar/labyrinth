@@ -11,7 +11,7 @@ import Data.Maybe
 import Peeker
 
 data Direction = L | R | U | D
-                 deriving (Eq, Show)
+                 deriving (Eq)
 
 data CellType = Land
               | Armory

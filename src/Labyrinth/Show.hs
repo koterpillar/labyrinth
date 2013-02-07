@@ -1,6 +1,7 @@
 module Labyrinth.Show where
 
 import Labyrinth.Map
+import Labyrinth.Move
 
 import Data.List
 
@@ -74,3 +75,22 @@ instance Show Labyrinth where
                                 , showPlayers
                                 , showCurrentPlayer
                                 ]
+
+instance Show Direction where
+    show L = "left"
+    show R = "right"
+    show U = "up"
+    show D = "down"
+
+instance Show MoveDirection where
+    show (Towards d) = show d
+    show Next = "next"
+
+instance Show Action where
+    show (Go d) = "go " ++ (show d)
+    show (Shoot d) = "shoot " ++ (show d)
+    show (Grenade d) = "grenade " ++ (show d)
+
+instance Show Move where
+    show (Move []) = "skip"
+    show (Move acts) = intercalate ", " $ map show acts

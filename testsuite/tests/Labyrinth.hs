@@ -11,7 +11,8 @@ import Test.HUnit hiding (State)
 main = runTestTT tests
 
 tests = TestList [ test_advance
-                 , test_show
+                 , test_show_labyrinth
+                 , test_show_move
                  , test_move
                  , test_move_to_armory
                  , test_move_to_pit
@@ -93,13 +94,30 @@ interesting_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
                                           , "Current player: 0"
                                           ]
 
-test_show = TestCase $ do
+test_show_labyrinth = TestCase $ do
     assertEqual "empty labyrinth"
         empty_expected $
         show empty_labyrinth
     assertEqual "empty labyrinth"
         interesting_expected $
         show interesting_labyrinth
+
+assertShowMove :: String -> Move -> Assertion
+assertShowMove message move = assertEqual message message $ show move
+
+test_show_move = TestCase $ do
+    assertShowMove "skip" $
+        Move []
+    assertShowMove "go left" $
+        Move [goTowards L]
+    assertShowMove "go right" $
+        Move [goTowards R]
+    assertShowMove "go down" $
+        Move [goTowards D]
+    assertShowMove "go up" $
+        Move [goTowards U]
+    assertShowMove "shoot left, go up, grenade left" $
+        Move [Shoot L, goTowards U, Grenade L]
 
 assertMoveUpdates :: String -> Labyrinth -> Move -> MoveResult -> State Labyrinth () -> Assertion
 assertMoveUpdates message initialLab move result labUpdate = do

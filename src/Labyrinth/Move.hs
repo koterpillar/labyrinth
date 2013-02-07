@@ -3,23 +3,22 @@
 module Labyrinth.Move where
 
 import Labyrinth.Map
-import Labyrinth.Show
 
 import Peeker
 
 data MoveDirection = Towards Direction | Next
-                   deriving (Eq, Show)
+                   deriving (Eq)
 
 data Action = Go MoveDirection
             | Shoot Direction
             | Grenade Direction
-            deriving (Eq, Show)
+            deriving (Eq)
 
 goTowards :: Direction -> Action
 goTowards = Go . Towards
 
 data Move = Move [Action]
-            deriving (Eq, Show)
+            deriving (Eq)
 
 data CellTypeResult = LandR
                     | ArmoryR

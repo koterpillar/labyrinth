@@ -50,52 +50,57 @@ performAction (Go (Towards dir)) = do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     w <- getS (wall pos dir)
-    if w == NoWall then do
-        let npos = advance pos dir
-        updS (player pi ~> position) npos
-        ct <- getS (cell npos ~> ctype)
-        -- Perform cell-type-specific actions
-        npos' <- afterMove ct npos pi
-        let npos'' = fromMaybe npos npos'
-        updS (player pi ~> position) npos''
-        -- If transported, determine the new cell type
-        nct <- if isJust npos' then do
-            nct' <- getS (cell npos'' ~> ctype)
-            return $ Just nct'
+    if w == NoWall
+        then do
+            let npos = advance pos dir
+            updS (player pi ~> position) npos
+            ct <- getS (cell npos ~> ctype)
+            -- Perform cell-type-specific actions
+            npos' <- afterMove ct npos pi
+            let npos'' = fromMaybe npos npos'
+            updS (player pi ~> position) npos''
+            -- If transported, determine the new cell type
+            nct <- if isJust npos' then do
+                    nct' <- getS (cell npos'' ~> ctype)
+                    return $ Just nct'
+                else
+                    return Nothing
+            -- Pick ammo
+            cb <- transferAmmo maxBullets
+                (cell npos'' ~> cbullets)
+                (player pi ~> pbullets)
+            cg <- transferAmmo maxGrenades
+                (cell npos'' ~> cgrenades)
+                (player pi ~> pgrenades)
+            -- Pick treasures
+            ctr <- getS (cell npos'' ~> ctreasures)
+            ptr <- getS (player pi ~> ptreasure)
+            if and [ptr == Nothing, length ctr > 0]
+                then do
+                    let ctr' = tail ctr
+                    let ptr' = Just $ head ctr
+                    updS (cell npos'' ~> ctreasures) ctr'
+                    updS (player pi ~> ptreasure) ptr'
+                else
+                    return ()
+            let nctr = (fmap ctResult) nct
+            return $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
         else
-            return Nothing
-        -- Pick ammo
-        cb <- transferAmmo maxBullets
-            (cell npos'' ~> cbullets)
-            (player pi ~> pbullets)
-        cg <- transferAmmo maxGrenades
-            (cell npos'' ~> cgrenades)
-            (player pi ~> pgrenades)
-        -- Pick treasures
-        ctr <- getS (cell npos'' ~> ctreasures)
-        ptr <- getS (player pi ~> ptreasure)
-        if and [ptr == Nothing, length ctr > 0] then do
-            let ctr' = tail ctr
-            let ptr' = Just $ head ctr
-            updS (cell npos'' ~> ctreasures) ctr'
-            updS (player pi ~> ptreasure) ptr'
-        else
-            return ()
-        let nctr = (fmap ctResult) nct
-        return $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
-    else
-        return $ GoR HitWall
+            return $ GoR HitWall
 
 performAction (Grenade dir) = do
     pi <- getS currentPlayer
     g <- getS (player pi ~> pgrenades)
-    if g > 0 then do
-        updS (player pi ~> pgrenades) (g - 1)
-        pos <- getS (player pi ~> position)
-        w <- getS (wall pos dir)
-        if w /= HardWall then do
-            updS (wall pos dir) NoWall
-        else return ()
-        return $ GrenadeR GrenadeOK
-    else
-        return $ GrenadeR NoGrenades
+    if g > 0
+        then do
+            updS (player pi ~> pgrenades) (g - 1)
+            pos <- getS (player pi ~> position)
+            w <- getS (wall pos dir)
+            if w /= HardWall
+                then do
+                    updS (wall pos dir) NoWall
+                else
+                    return ()
+            return $ GrenadeR GrenadeOK
+        else
+            return $ GrenadeR NoGrenades

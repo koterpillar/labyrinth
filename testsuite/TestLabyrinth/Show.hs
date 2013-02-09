@@ -4,8 +4,13 @@ module TestLabyrinth.Show (htf_thisModulesTests) where
 
 import Labyrinth
 
+import Control.Monad
+
+import Text.Parsec
+
 import Test.Framework
 import qualified Test.HUnit as HU
+import Test.QuickCheck
 
 assertShowEquals :: (Show a) => String -> a -> HU.Assertion
 assertShowEquals message move = assertEqual message $ show move
@@ -39,3 +44,28 @@ test_show_move_result = do
         MoveRes [GoR $ Went LandR 2 3 1 Nothing]
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
         MoveRes [GoR $ Went RiverR 0 2 0 (Just RiverR)]
+
+instance Arbitrary Direction where
+    arbitrary = elements [ L, R, U, D ]
+
+instance Arbitrary MoveDirection where
+    arbitrary = oneof [ return Next
+                      , liftM Towards arbitrary
+                      ]
+
+instance Arbitrary Action where
+    arbitrary = oneof [ liftM Go arbitrary
+                      , liftM Shoot arbitrary
+                      , liftM Grenade arbitrary
+                      ]
+
+instance Arbitrary Move where
+    arbitrary = liftM Move arbitrary
+
+prop_show_parse_move :: Move -> Bool
+prop_show_parse_move m = parsed == m
+    where
+        parseResult = parseMove $ show m
+        parsed = case parseResult of
+            Right x -> x
+            Left y -> error y

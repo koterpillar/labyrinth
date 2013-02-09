@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-module TestLabyrinth (htf_thisModulesTests) where
+module Main where
 
 import Labyrinth
 

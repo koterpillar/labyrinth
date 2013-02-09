@@ -1,4 +1,4 @@
-module LabyrinthServer where
+module Main where
 
 import Control.Exception (bracket)
 import Control.Monad (msum)

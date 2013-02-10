@@ -68,6 +68,14 @@ test_state = do
     assertEqual
         (Wrap Bar) $
         execState (updS p2 Bar) (Wrap Foo)
+    let plusOne :: State Int String
+        plusOne = do
+        x <- get
+        put $ x + 1
+        return "inner result"
+    assertEqual
+        ("inner result", Wrap 2) $
+        runState (stateS p2 plusOne) (Wrap 1)
 
 test_reader = do
     assertEqual

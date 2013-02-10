@@ -7,6 +7,7 @@ module Peeker ( Peek
               , getS
               , askS
               , updS
+              , stateS
               , liftP
               , listP
               , mapP
@@ -44,6 +45,13 @@ askS p = ask >>= return . getP p
 
 updS :: (MonadState a m) => Peek a b -> b -> m ()
 updS p v = modify $ flip (updP p) v
+
+stateS :: (MonadState a m) => Peek a b -> State b c -> m c
+stateS peek modify = do
+    y <- getS peek
+    let (r, y') = runState modify y
+    updS peek y'
+    return r
 
 liftP :: Peek a a
 liftP x = (x, id)

@@ -19,6 +19,6 @@ executable labyrinth-server
 
 Test-Suite tests
   type:                exitcode-stdio-1.0
-  main-is:             TestLabyrinth.hs
+  main-is:             Main.hs
   build-depends:       base ==4.5.*, mtl ==2.1.*, template-haskell ==2.7.*, acid-state ==0.8.*, happstack-server ==7.1.*, derive ==2.5.*, safecopy ==0.8.*, parsec ==3.1.*, HTF ==0.10.*, HUnit ==1.2.*, QuickCheck ==2.5.*
   hs-source-dirs:      src, testsuite

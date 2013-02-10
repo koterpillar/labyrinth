@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 
-module Main where
+module TestLabyrinth where
 
 import Labyrinth
 
@@ -12,8 +12,6 @@ import Peeker
 
 import qualified Test.HUnit as HU
 import Test.Framework
-
-main = htfMain htf_thisModulesTests
 
 test_advance = do
     assertEqual

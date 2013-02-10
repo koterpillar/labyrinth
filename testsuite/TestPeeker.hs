@@ -6,6 +6,7 @@ module TestPeeker (htf_thisModulesTests) where
 import Peeker
 
 import Control.Monad.State
+import Control.Monad.Reader
 
 import Test.Framework
 
@@ -65,6 +66,11 @@ test_state = do
     assertEqual
         (Wrap Bar) $
         execState (updS p2 Bar) (Wrap Foo)
+
+test_reader = do
+    assertEqual
+        Foo $
+        runReader (askS p2) (Wrap Foo)
 
 test_lift = do
     assertEqual

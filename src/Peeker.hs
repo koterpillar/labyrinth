@@ -5,6 +5,7 @@ module Peeker ( Peek
               , getP
               , updP
               , getS
+              , askS
               , updS
               , liftP
               , listP
@@ -16,6 +17,7 @@ TODO: getS clashes with gets from Control.Monad.State. They mean similar
 things, and get is different from getP, which makes things complicated.
 -}
 import Control.Monad.State
+import Control.Monad.Reader
 
 import Language.Haskell.TH hiding (listP)
 
@@ -33,6 +35,9 @@ updP p = snd . p
 
 getS :: (MonadState a m) => Peek a b -> m b
 getS p = get >>= return . getP p
+
+askS :: (MonadReader a m) => Peek a b -> m b
+askS p = ask >>= return . getP p
 
 updS :: (MonadState a m) => Peek a b -> b -> m ()
 updS p v = modify $ flip (updP p) v

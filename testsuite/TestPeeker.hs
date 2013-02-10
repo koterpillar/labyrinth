@@ -8,6 +8,8 @@ import Peeker
 import Control.Monad.State
 import Control.Monad.Reader
 
+import qualified Data.Map as M
+
 import Test.Framework
 
 data Wrap2 a = Wrap2 (Wrap a)
@@ -88,6 +90,15 @@ test_list = do
     assertEqual
         [10,20,99,40] $
         updP (listP 2) lst 99
+
+test_map = do
+    let map = M.fromList [(1, 2), (3, 4)]
+    assertEqual
+        2 $
+        getP (mapP 1) map
+    assertEqual
+        (M.fromList [(1, 10), (3, 4)]) $
+        updP (mapP 1) map 10
 
 test_template = do
     let rec = RecC Apple Cat

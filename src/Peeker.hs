@@ -9,6 +9,7 @@ module Peeker ( Peek
               , updS
               , liftP
               , listP
+              , mapP
               , derivePeek
               ) where
 
@@ -18,6 +19,8 @@ things, and get is different from getP, which makes things complicated.
 -}
 import Control.Monad.State
 import Control.Monad.Reader
+
+import qualified Data.Map as M
 
 import Language.Haskell.TH hiding (listP)
 
@@ -47,6 +50,9 @@ liftP x = (x, id)
 
 listP :: Int -> Peek [a] a
 listP i l = (l !! i, \y -> take i l ++ [y] ++ drop (i + 1) l)
+
+mapP :: (Ord k) => k -> Peek (M.Map k v) v
+mapP i m = ((M.!) m i, \y -> M.insert i y m)
 
 derivePeek :: Name -> Q [Dec]
 derivePeek rec = do

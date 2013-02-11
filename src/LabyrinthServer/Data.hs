@@ -8,10 +8,13 @@ import Control.Monad.Reader (ask)
 import Data.Acid (Query, Update, makeAcidic)
 import Data.DeriveTH
 import Data.Derive.Typeable
+import Data.Map
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable
 
-import Labyrinth hiding (performMove)
+import Peeker
+
+import Labyrinth hiding (performMove, currentPlayer)
 import qualified Labyrinth as L
 
 deriveSafeCopy 0 'base ''Direction
@@ -38,14 +41,46 @@ derive makeTypeable ''Labyrinth
 derive makeTypeable ''Move
 derive makeTypeable ''MoveResult
 
-performMove :: Move -> Update Labyrinth MoveResult
-performMove m = do
-    l <- get
-    let (mr, nl) = runState (L.performMove m) l
-    put nl
-    return mr
+type GameId = String
 
-getLabyrinth :: Query Labyrinth Labyrinth
-getLabyrinth = ask
+data Games = Games { games_ :: Map GameId Labyrinth }
 
-makeAcidic ''Labyrinth ['performMove, 'getLabyrinth]
+noGames :: Games
+noGames = Games empty
+
+derivePeek ''Games
+
+game :: GameId -> Peek Games Labyrinth
+game id = games ~> mapP id
+
+gameList :: Query Games [GameId]
+gameList = askS games >>= return . keys
+
+addGame :: GameId -> Labyrinth -> Update Games Bool
+addGame id lab = stateS games $ do
+    existing <- gets (member id)
+    if existing
+        then return False
+        else do
+            modify $ insert id lab
+            return True
+
+performMove :: GameId -> Move -> Update Games MoveResult
+performMove g = stateS (game g) . L.performMove
+
+currentPlayer :: GameId -> Query Games Int
+currentPlayer g = askS $ game g ~> L.currentPlayer
+
+showLabyrinth :: GameId -> Query Games Labyrinth
+showLabyrinth = askS . game
+
+deriveSafeCopy 0 'base ''Games
+
+derive makeTypeable ''Games
+
+makeAcidic ''Games [ 'gameList
+                   , 'addGame
+                   , 'performMove
+                   , 'currentPlayer
+                   , 'showLabyrinth
+                   ]

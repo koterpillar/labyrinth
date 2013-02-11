@@ -1,4 +1,3 @@
--- Map-related functions
 {-# Language TemplateHaskell #-}
 module Labyrinth.Map where
 

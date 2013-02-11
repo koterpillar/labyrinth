@@ -6,8 +6,17 @@
         <script src="js/labyrinth.js"></script>
     </head>
     <body>
+        <h1>Games</h1>
+        <div id='games'></div>
+        <form id='add_game' action='/add'>
+            Players: <input type='number' min='2' id='players' name='players' />
+            <input type='submit' value='Create game' />
+        </form>
+        <h1>Game log</h1>
         <div id='history'></div>
-        <input type='text' id='move' />
-        <input type='submit' id='submit' value='Make move' />
+        <form id='make_move'>
+            <input type='text' id='move' name='move' />
+            <input type='submit' value='Make move' />
+        </form>
     </body>
 </html>

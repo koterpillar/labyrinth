@@ -43,14 +43,32 @@ derive makeTypeable ''MoveResult
 
 type GameId = String
 
-data Games = Games { games_ :: Map GameId Labyrinth }
+type MoveLog = [(Move, MoveResult)]
+
+logMoveResult :: Move -> MoveResult -> State MoveLog ()
+logMoveResult m r = modify ((++) [(m, r)])
+
+data Game = Game { labyrinth_ :: Labyrinth
+                 , moves_ :: MoveLog
+                 }
+
+newGame :: Labyrinth -> Game
+newGame l = Game l []
+
+derivePeek ''Game
+
+deriveSafeCopy 0 'base ''Game
+
+derive makeTypeable ''Game
+
+data Games = Games { games_ :: Map GameId Game }
 
 noGames :: Games
 noGames = Games empty
 
 derivePeek ''Games
 
-game :: GameId -> Peek Games Labyrinth
+game :: GameId -> Peek Games Game
 game id = games ~> mapP id
 
 gameList :: Query Games [GameId]
@@ -62,17 +80,23 @@ addGame id lab = stateS games $ do
     if existing
         then return False
         else do
-            modify $ insert id lab
+            modify $ insert id $ newGame lab
             return True
 
 performMove :: GameId -> Move -> Update Games MoveResult
-performMove g = stateS (game g) . L.performMove
+performMove g m = stateS (game g) $ do
+    r <- stateS labyrinth $ L.performMove m
+    stateS moves $ logMoveResult m r
+    return r
 
 currentPlayer :: GameId -> Query Games Int
-currentPlayer g = askS $ game g ~> L.currentPlayer
+currentPlayer g = askS $ game g ~> labyrinth ~> L.currentPlayer
+
+gameLog :: GameId -> Query Games MoveLog
+gameLog g = askS $ game g ~> moves
 
 showLabyrinth :: GameId -> Query Games Labyrinth
-showLabyrinth = askS . game
+showLabyrinth g = askS (game g ~> labyrinth)
 
 deriveSafeCopy 0 'base ''Games
 
@@ -82,5 +106,6 @@ makeAcidic ''Games [ 'gameList
                    , 'addGame
                    , 'performMove
                    , 'currentPlayer
+                   , 'gameLog
                    , 'showLabyrinth
                    ]

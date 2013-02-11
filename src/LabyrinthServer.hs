@@ -40,6 +40,7 @@ myApp acid = msum (map ($ acid) actions) `mplus` fileServing
                     ]
                     ++ map gameAction gameActions
           gameActions = [ makeMove
+                        , showLog
                         , cheat
                         ]
 
@@ -57,7 +58,6 @@ createGame acid = dir "add" $ nullDir >> method POST >> do
     decodeBody bodyPolicy
     pCount <- lookRead "players"
     gameId <- newId
-    let gameId = "asdf"
     lab <- createLabyrinth pCount
     res <- update' acid $ AddGame gameId lab
     if res
@@ -73,6 +73,13 @@ cheat :: AcidState Games -> GameId -> ServerPart Response
 cheat acid gameId = dir "cheat" $ nullDir >> do
     l <- query' acid $ ShowLabyrinth gameId
     ok $ toResponse $ show l
+
+showLog :: AcidState Games -> GameId -> ServerPart Response
+showLog acid gameId = dir "log" $ nullDir >> do
+    l <- query' acid $ GameLog gameId
+    let str = intercalate "\n" $ map showMove l
+    ok $ toResponse str
+    where showMove (m, r) = show m ++ "\n" ++ show r
 
 makeMove :: AcidState Games -> GameId -> ServerPart Response
 makeMove acid gameId = dir "move" $ nullDir >> method POST >> do

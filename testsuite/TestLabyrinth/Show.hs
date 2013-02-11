@@ -62,6 +62,39 @@ instance Arbitrary Action where
 instance Arbitrary Move where
     arbitrary = liftM Move arbitrary
 
+instance Arbitrary CellTypeResult where
+    arbitrary = elements [ LandR
+                         , ArmoryR
+                         , HospitalR
+                         , PitR
+                         , RiverR
+                         , RiverDeltaR
+                         ]
+
+instance Arbitrary GoResult where
+    arbitrary = oneof [ liftM5 Went arbitrary arbitrary arbitrary arbitrary arbitrary
+                      , return HitWall
+                      ]
+
+instance Arbitrary ShootResult where
+    arbitrary = elements [ ShootOK
+                         , Scream
+                         , NoBullets
+                         , Forbidden
+                         ]
+
+instance Arbitrary GrenadeResult where
+    arbitrary = elements [ GrenadeOK, NoGrenades ]
+
+instance Arbitrary ActionResult where
+    arbitrary = oneof [ liftM GoR arbitrary
+                      , liftM ShootR arbitrary
+                      , liftM GrenadeR arbitrary
+                      ]
+
+instance Arbitrary MoveResult where
+    arbitrary = liftM MoveRes arbitrary
+
 prop_show_parse_move :: Move -> Bool
 prop_show_parse_move m = parsed == m
     where
@@ -69,3 +102,6 @@ prop_show_parse_move m = parsed == m
         parsed = case parseResult of
             Right x -> x
             Left y -> error y
+
+prop_show_move_result :: MoveResult -> Bool
+prop_show_move_result = (0 <) . length . show

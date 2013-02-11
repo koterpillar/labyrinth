@@ -135,6 +135,14 @@ instance Show ActionResult where
                           ++ " and " ++ xs !! (n - 1)
                           where n = length xs
 
+    show (ShootR ShootOK)   = "ok"
+    show (ShootR Scream)    = "a scream is heard"
+    show (ShootR NoBullets) = "no bullets"
+    show (ShootR Forbidden) = "shooting forbidden"
+
+    show (GrenadeR GrenadeOK)  = "ok"
+    show (GrenadeR NoGrenades) = "no grenades"
+
 instance Show MoveResult where
     show (MoveRes []) = "ok"
     show (MoveRes rs) = intercalate ", " $ map show rs

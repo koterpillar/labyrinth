@@ -1,4 +1,4 @@
-module Labyrinth.Action where
+module Labyrinth.Action (performMove) where
 
 import Control.Monad.State
 

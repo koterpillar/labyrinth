@@ -92,21 +92,33 @@ test_show_labyrinth = do
         interesting_expected $
         show interesting_labyrinth
 
-assertMoveUpdates :: Labyrinth -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
-assertMoveUpdates initialLab move result labUpdate = do
+assertMoveUpdates :: Labyrinth -> PlayerId -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
+assertMoveUpdates initialLab pi move result labUpdate = do
     let updatedLab = execState labUpdate initialLab
     assertEqual
         (result, updatedLab) $
-        runState (performMove move) initialLab
+        runState (performMove pi move) initialLab
+
+assertMoveUpdates' :: Labyrinth -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
+assertMoveUpdates' initialLab = assertMoveUpdates initialLab pi
+    where pi = getP currentPlayer initialLab
+
+test_wrong_turn = do
+    assertMoveUpdates
+        empty_labyrinth
+        1
+        (Move [goTowards D])
+        WrongTurn
+        $ return ()
 
 test_move = do
-    assertMoveUpdates
+    assertMoveUpdates'
         walled_labyrinth
         (Move [goTowards D])
         (MoveRes [GoR HitWall])
         $ do
             updS currentPlayer 1
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_labyrinth
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR 0 0 0 Nothing])
@@ -118,7 +130,7 @@ test_move_to_armory = do
     let armory_missing_ammo = applyState interesting_labyrinth $ do
         updS (player 0 ~> pbullets) 2
         updS (player 0 ~> pgrenades) 1
-    assertMoveUpdates
+    assertMoveUpdates'
         armory_missing_ammo
         (Move [goTowards U])
         (MoveRes [GoR $ Went ArmoryR 0 0 0 Nothing])
@@ -135,7 +147,7 @@ test_move_to_pit = do
         updS (cell (Pos 4 0) ~> cgrenades) 1
         updS (player 1 ~> pgrenades) 0
         updS (player 1 ~> pbullets) 0
-    assertMoveUpdates
+    assertMoveUpdates'
         lab
         (Move [goTowards U])
         (MoveRes [GoR $ Went PitR 0 1 0 (Just PitR)])
@@ -151,7 +163,7 @@ test_move_to_river = do
         updS (cell (Pos 2 2) ~> cgrenades) 1
         updS (player 0 ~> pgrenades) 0
         updS (player 0 ~> pbullets) 0
-    assertMoveUpdates
+    assertMoveUpdates'
         lab
         (Move [goTowards R])
         (MoveRes [GoR $ Went RiverR 0 1 0 (Just RiverR)])
@@ -166,7 +178,7 @@ test_move_to_river = do
         updS (player 0 ~> position) (Pos 2 3)
         updS (player 0 ~> pgrenades) 0
         updS (player 0 ~> pbullets) 0
-    assertMoveUpdates
+    assertMoveUpdates'
         lab2
         (Move [goTowards U])
         (MoveRes [GoR $ Went RiverR 0 1 0 (Just RiverDeltaR)])
@@ -182,7 +194,7 @@ test_found_ammo = do
         updS (player 0 ~> pgrenades) 0
         updS (cell (Pos 0 1) ~> cbullets) 2
         updS (cell (Pos 0 1) ~> cgrenades) 1
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_ammo
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR 2 1 0 Nothing])
@@ -198,7 +210,7 @@ test_found_ammo = do
         updS (player 0 ~> pgrenades) 3
         updS (cell (Pos 0 1) ~> cbullets) 4
         updS (cell (Pos 0 1) ~> cgrenades) 5
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_ammo_2
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR 4 5 0 Nothing])
@@ -213,7 +225,7 @@ test_found_ammo = do
 test_found_treasure = do
     let empty_treasure = applyState empty_labyrinth $ do
         updS (cell (Pos 0 1) ~> ctreasures) [FakeTreasure]
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_treasure
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR 0 0 1 Nothing])
@@ -225,7 +237,7 @@ test_found_treasure = do
     let empty_treasure_2 = applyState empty_labyrinth $ do
         updS (player 0 ~> ptreasure) (Just FakeTreasure)
         updS (cell (Pos 0 1) ~> ctreasures) [TrueTreasure]
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_treasure_2
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR 0 0 1 Nothing])
@@ -234,7 +246,7 @@ test_found_treasure = do
             updS currentPlayer 1
 
 test_grenade = do
-    assertMoveUpdates
+    assertMoveUpdates'
         walled_labyrinth
         (Move [Grenade R])
         (MoveRes [GrenadeR GrenadeOK])
@@ -242,21 +254,21 @@ test_grenade = do
             updS (wall (Pos 0 0) R) NoWall
             updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
-    assertMoveUpdates
+    assertMoveUpdates'
         empty_labyrinth
         (Move [Grenade R])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
-    assertMoveUpdates
+    assertMoveUpdates'
         walled_labyrinth
         (Move [Grenade L])
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (player 0 ~> pgrenades) 2
             updS currentPlayer 1
-    assertMoveUpdates
+    assertMoveUpdates'
         (applyState walled_labyrinth $ updS (player 0 ~> pgrenades) 0)
         (Move [Grenade R])
         (MoveRes [GrenadeR NoGrenades])
@@ -264,7 +276,7 @@ test_grenade = do
             updS currentPlayer 1
 
 test_combined = do
-    assertMoveUpdates
+    assertMoveUpdates'
         walled_labyrinth
         (Move [Grenade R, goTowards R])
         (MoveRes [GrenadeR GrenadeOK, GoR $ Went LandR 0 0 0 Nothing])

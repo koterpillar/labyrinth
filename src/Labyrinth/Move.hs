@@ -63,4 +63,5 @@ data ActionResult = GoR GoResult
                   deriving (Eq)
 
 data MoveResult = MoveRes [ActionResult]
-     deriving (Eq)
+                | WrongTurn
+                deriving (Eq)

@@ -22,21 +22,25 @@ $(document).ready(function () {
 
     $('#add_game').submit(function () {
         var form = $(this);
-        $.post(form, form.serialize(), function (result) {
+        $.post('/add', form.serializeArray(), function (result) {
             refreshGames(true);
         });
         return false;
     });
 
-    function refreshLog(noTimer) {
+    function refreshGame(noTimer) {
         if (gameId) {
+            $('#game').show();
             $.get('/' + gameId + '/log', function (result) {
                 result = result.replace(/\n/g, '<br />');
+                result += '<br />';
                 $('#history').html(result);
             });
+        } else {
+            $('#game').hide();
         }
         if (!noTimer) {
-            setTimeout(refreshLog, 1000);
+            setTimeout(refreshGame, 1000);
         }
     }
 
@@ -47,7 +51,7 @@ $(document).ready(function () {
     $('#make_move').submit(function () {
         var form = $(this);
         var data = form.serialize();
-        addLine($('#move').val());
+        addLine("player " + $('#player').val() + ": " + $('#move').val());
         $.post('/' + gameId + '/move', data, function (result) {
             addLine(result);
             $('#move').val('');
@@ -57,5 +61,5 @@ $(document).ready(function () {
     });
 
     refreshGames();
-    refreshLog();
+    refreshGame();
 });

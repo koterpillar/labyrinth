@@ -43,10 +43,21 @@ derive makeTypeable ''MoveResult
 
 type GameId = String
 
-type MoveLog = [(Move, MoveResult)]
+data MoveRecord = MoveRecord { rplayer_ :: Int
+                             , rmove_ :: Move
+                             , rresult_ :: MoveResult
+                             }
 
-logMoveResult :: Move -> MoveResult -> State MoveLog ()
-logMoveResult m r = modify ((++) [(m, r)])
+derivePeek ''MoveRecord
+
+deriveSafeCopy 0 'base ''MoveRecord
+
+derive makeTypeable ''MoveRecord
+
+type MoveLog = [MoveRecord]
+
+logMoveResult :: MoveRecord -> State MoveLog ()
+logMoveResult m = modify (\l -> l ++ [m])
 
 data Game = Game { labyrinth_ :: Labyrinth
                  , moves_ :: MoveLog
@@ -83,10 +94,10 @@ addGame id lab = stateS games $ do
             modify $ insert id $ newGame lab
             return True
 
-performMove :: GameId -> Move -> Update Games MoveResult
-performMove g m = stateS (game g) $ do
-    r <- stateS labyrinth $ L.performMove m
-    stateS moves $ logMoveResult m r
+performMove :: GameId -> PlayerId -> Move -> Update Games MoveResult
+performMove g p m = stateS (game g) $ do
+    r <- stateS labyrinth $ L.performMove p m
+    stateS moves $ logMoveResult $ MoveRecord p m r
     return r
 
 currentPlayer :: GameId -> Query Games Int

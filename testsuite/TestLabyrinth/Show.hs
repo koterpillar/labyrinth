@@ -1,10 +1,13 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
+{-# Language TemplateHaskell #-}
 
 module TestLabyrinth.Show (htf_thisModulesTests) where
 
 import Labyrinth
 
 import Control.Monad
+
+import Data.DeriveTH
 
 import Text.Parsec
 
@@ -45,55 +48,16 @@ test_show_move_result = do
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
         MoveRes [GoR $ Went RiverR 0 2 0 (Just RiverR)]
 
-instance Arbitrary Direction where
-    arbitrary = elements [ L, R, U, D ]
-
-instance Arbitrary MoveDirection where
-    arbitrary = oneof [ return Next
-                      , liftM Towards arbitrary
-                      ]
-
-instance Arbitrary Action where
-    arbitrary = oneof [ liftM Go arbitrary
-                      , liftM Shoot arbitrary
-                      , liftM Grenade arbitrary
-                      ]
-
-instance Arbitrary Move where
-    arbitrary = liftM Move arbitrary
-
-instance Arbitrary CellTypeResult where
-    arbitrary = elements [ LandR
-                         , ArmoryR
-                         , HospitalR
-                         , PitR
-                         , RiverR
-                         , RiverDeltaR
-                         ]
-
-instance Arbitrary GoResult where
-    arbitrary = oneof [ liftM5 Went arbitrary arbitrary arbitrary arbitrary arbitrary
-                      , return HitWall
-                      ]
-
-instance Arbitrary ShootResult where
-    arbitrary = elements [ ShootOK
-                         , Scream
-                         , NoBullets
-                         , Forbidden
-                         ]
-
-instance Arbitrary GrenadeResult where
-    arbitrary = elements [ GrenadeOK, NoGrenades ]
-
-instance Arbitrary ActionResult where
-    arbitrary = oneof [ liftM GoR arbitrary
-                      , liftM ShootR arbitrary
-                      , liftM GrenadeR arbitrary
-                      ]
-
-instance Arbitrary MoveResult where
-    arbitrary = liftM MoveRes arbitrary
+derive makeArbitrary ''Direction
+derive makeArbitrary ''MoveDirection
+derive makeArbitrary ''Action
+derive makeArbitrary ''Move
+derive makeArbitrary ''CellTypeResult
+derive makeArbitrary ''GoResult
+derive makeArbitrary ''ShootResult
+derive makeArbitrary ''GrenadeResult
+derive makeArbitrary ''ActionResult
+derive makeArbitrary ''MoveResult
 
 prop_show_parse_move :: Move -> Bool
 prop_show_parse_move m = parsed == m

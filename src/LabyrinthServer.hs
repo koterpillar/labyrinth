@@ -10,7 +10,9 @@ import Data.Acid.Local (createCheckpointAndClose)
 import Data.List
 import qualified Data.Text as T
 
-import Happstack.Server
+import Happstack.Server hiding (result)
+
+import Peeker
 
 import System.Random
 
@@ -79,15 +81,17 @@ showLog acid gameId = dir "log" $ nullDir >> do
     l <- query' acid $ GameLog gameId
     let str = intercalate "\n" $ map showMove l
     ok $ toResponse str
-    where showMove (m, r) = show m ++ "\n" ++ show r
+    where showMove m = "player " ++ show (getP rplayer m)
+                    ++ ": " ++ show (getP rmove m)
+                    ++ "\n" ++ show (getP rresult m)
 
 makeMove :: AcidState Games -> GameId -> ServerPart Response
 makeMove acid gameId = dir "move" $ nullDir >> method POST >> do
     decodeBody bodyPolicy
     moveStr <- look "move"
+    playerId <- lookRead "player"
     case parseMove moveStr of
         Left err   -> ok $ toResponse err
         Right move -> do
-            res <- update' acid $ PerformMove gameId move
-            cp <- query' acid $ CurrentPlayer gameId
-            ok $ toResponse $ show res ++ "; current player: " ++ show cp
+            res <- update' acid $ PerformMove gameId playerId move
+            ok $ toResponse $ show res

@@ -80,12 +80,14 @@ initialPlayer pos = Player { position_  = pos
                            , ptreasure_ = Nothing
                            }
 
+type PlayerId = Int
+
 -- wallsV and wallsH are considered to be to the left and top of the cells
 data Labyrinth = Labyrinth { cells_         :: [[Cell]]
                            , wallsH_        :: [[Wall]]
                            , wallsV_        :: [[Wall]]
                            , players_       :: [Player]
-                           , currentPlayer_ :: Int
+                           , currentPlayer_ :: PlayerId
                            }
                  deriving (Eq)
 
@@ -129,7 +131,7 @@ wall p L = wallV p
 wall p D = wallH (advance p D)
 wall p R = wallV (advance p R)
 
-player :: Int -> Peek Labyrinth Player
+player :: PlayerId -> Peek Labyrinth Player
 player i = players ~> listP i
 
 allPositions :: Labyrinth -> [Position]

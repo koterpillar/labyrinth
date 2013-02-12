@@ -9,14 +9,17 @@ import Labyrinth.Move
 
 import Peeker
 
-performMove :: Move -> State Labyrinth MoveResult
-performMove (Move actions) = do
-    actionRes <- forM actions performAction
+performMove :: PlayerId -> Move -> State Labyrinth MoveResult
+performMove pi (Move actions) = do
     current <- getS currentPlayer
-    pCount <- gets playerCount
-    let next = (current + 1) `mod` pCount
-    updS currentPlayer next
-    return $ MoveRes actionRes
+    if current /= pi
+        then return WrongTurn
+        else do
+            actionRes <- forM actions performAction
+            pCount <- gets playerCount
+            let next = (current + 1) `mod` pCount
+            updS currentPlayer next
+            return $ MoveRes actionRes
 
 transferAmmo :: Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
 transferAmmo maxAmount from to = do
@@ -29,7 +32,7 @@ transferAmmo maxAmount from to = do
     updS to has'
     return found
 
-afterMove :: CellType -> Position -> Int -> State Labyrinth (Maybe Position)
+afterMove :: CellType -> Position -> PlayerId -> State Labyrinth (Maybe Position)
 afterMove Land _ _ = return Nothing
 afterMove Armory _ pi = do
     updS (player pi ~> pbullets) maxBullets

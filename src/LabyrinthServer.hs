@@ -25,9 +25,7 @@ createLabyrinth n = do
     return $ emptyLabyrinth 5 6 $ map (\i -> Pos i i) [0..n - 1]
 
 newId :: (MonadIO m) => m String
-newId = do
-    gen <- liftIO getStdGen
-    return $ T.unpack $ T.unfoldrN 32 (Just . randomR ('a', 'z')) gen
+newId = sequence $ take 32 $ repeat $ liftIO $ randomRIO ('a', 'z')
 
 main :: IO ()
 main = do

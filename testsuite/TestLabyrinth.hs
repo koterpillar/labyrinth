@@ -66,18 +66,21 @@ interesting_labyrinth = applyState empty_labyrinth $ do
     updS (cell (Pos 1 2) ~> ctype) RiverDelta
     updS (cell (Pos 2 2) ~> ctype) $ River L
     updS (cell (Pos 3 2) ~> ctype) $ Pit 0
+    updS (wall (Pos 3 0) U) $ Wall
+    updS (wall (Pos 0 3) L) $ NoWall
+    updS (wall (Pos 4 4) D) $ NoWall
 
-interesting_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
+interesting_expected = intercalate "\n" $ [ "+==+==+==+--+==+==+"
                                           , "X.  A  v  .  2  . X"
                                           , "+  +  +  +  +  +  +"
                                           , "X.  .  v  .  3  . X"
                                           , "+  +  +  +  +  +  +"
                                           , "X.  O  <  1  .  . X"
                                           , "+  +  +  +  +  +  +"
-                                          , "X.  .  .  .  .  . X"
+                                          , " .  .  .  .  .  . X"
                                           , "+  +  +  +  +  +  +"
                                           , "X.  .  .  .  .  . X"
-                                          , "+==+==+==+==+==+==+"
+                                          , "+==+==+==+==+  +==+"
                                           , ""
                                           , "0: Player (1, 1), 3B, 3G"
                                           , "1: Player (3, 3), 3B, 3G"
@@ -274,6 +277,39 @@ test_grenade = do
         (MoveRes [GrenadeR NoGrenades])
         $ do
             updS currentPlayer 1
+
+test_outside = do
+    let lab_no_treasure = applyState interesting_labyrinth $ do
+        updS (player 0 ~> position) (Pos 0 3)
+    assertMoveUpdates'
+        lab_no_treasure
+        (Move [goTowards L, Grenade U])
+        (MoveRes [GoR $ WentOutside Nothing, GrenadeR GrenadeOK])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) (Pos (-1) 3)
+            updS (player 0 ~> pgrenades) 2
+    let lab_fake_treasure = applyState lab_no_treasure $ do
+        updS (player 0 ~> ptreasure) $ Just FakeTreasure
+    assertMoveUpdates'
+        lab_fake_treasure
+        (Move [goTowards L, Grenade U])
+        (MoveRes [GoR $ WentOutside $ Just TurnedToAshesR, GrenadeR GrenadeOK])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) (Pos (-1) 3)
+            updS (player 0 ~> ptreasure) Nothing
+            updS (player 0 ~> pgrenades) 2
+    let lab_true_treasure = applyState lab_no_treasure $ do
+        updS (player 0 ~> ptreasure) $ Just TrueTreasure
+    assertMoveUpdates'
+        lab_true_treasure
+        (Move [goTowards L, Grenade U])
+        (MoveRes [GoR $ WentOutside $ Just TrueTreasureR])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) (Pos (-1) 3)
+            updS (player 0 ~> ptreasure) Nothing
 
 test_combined = do
     assertMoveUpdates'

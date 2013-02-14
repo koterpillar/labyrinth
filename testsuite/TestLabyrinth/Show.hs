@@ -53,6 +53,7 @@ derive makeArbitrary ''MoveDirection
 derive makeArbitrary ''Action
 derive makeArbitrary ''Move
 derive makeArbitrary ''CellTypeResult
+derive makeArbitrary ''TreasureResult
 derive makeArbitrary ''GoResult
 derive makeArbitrary ''ShootResult
 derive makeArbitrary ''GrenadeResult

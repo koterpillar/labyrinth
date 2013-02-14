@@ -36,12 +36,18 @@ ctResult (Pit _)    = PitR
 ctResult (River _)  = RiverR
 ctResult RiverDelta = RiverDeltaR
 
+data TreasureResult = TurnedToAshesR
+                    | TrueTreasureR
+                    deriving (Eq)
+
 data GoResult = Went { onto_           :: CellTypeResult
                      , foundBullets_   :: Int
                      , foundGrenades_  :: Int
                      , foundTreasures_ :: Int
                      , transportedTo_  :: Maybe CellTypeResult
                      }
+              | WentOutside { treasureResult_ :: Maybe TreasureResult
+                            }
               | HitWall {}
               deriving (Eq)
 

@@ -99,6 +99,18 @@ labWidth = length . cells_
 labHeight :: Labyrinth -> Int
 labHeight = length . head . cells_
 
+isInside :: Position -> Labyrinth -> Bool
+isInside (Pos x y) l = and [ x >= 0
+                            , x < w
+                            , y >= 0
+                            , y <= h
+                            ]
+    where w = labWidth l
+          h = labHeight l
+
+isOutside :: Position -> Labyrinth -> Bool
+isOutside p = not . isInside p
+
 playerCount :: Labyrinth -> Int
 playerCount = length . players_
 

@@ -15,7 +15,7 @@ performMove pi (Move actions) = do
     if current /= pi
         then return WrongTurn
         else do
-            actionRes <- forM actions performAction
+            actionRes <- performActions actions
             pCount <- gets playerCount
             let next = (current + 1) `mod` pCount
             updS currentPlayer next
@@ -48,8 +48,23 @@ afterMove (River d) npos pi = do
     return $ Just npos'
 afterMove RiverDelta _ _ = return Nothing
 
-performAction :: Action -> State Labyrinth ActionResult
-performAction (Go (Towards dir)) = do
+returnContinue :: [Action] -> ActionResult -> State Labyrinth [ActionResult]
+returnContinue rest res = do
+    restRes <- performActions rest
+    return $ res:restRes
+
+returnStop :: ActionResult -> State Labyrinth [ActionResult]
+returnStop = return . (:[])
+
+alwaysContinue :: [Action] -> State Labyrinth ActionResult -> State Labyrinth [ActionResult]
+alwaysContinue rest act = do
+    res <- act
+    returnContinue rest res
+
+performActions :: [Action] -> State Labyrinth [ActionResult]
+performActions [] = return []
+
+performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     w <- getS (wall pos dir)
@@ -57,53 +72,70 @@ performAction (Go (Towards dir)) = do
         then do
             let npos = advance pos dir
             updS (player pi ~> position) npos
-            ct <- getS (cell npos ~> ctype)
-            -- Perform cell-type-specific actions
-            npos' <- afterMove ct npos pi
-            let npos'' = fromMaybe npos npos'
-            updS (player pi ~> position) npos''
-            -- If transported, determine the new cell type
-            nct <- if isJust npos' then do
-                    nct' <- getS (cell npos'' ~> ctype)
-                    return $ Just nct'
-                else
-                    return Nothing
-            -- Pick ammo
-            cb <- transferAmmo maxBullets
-                (cell npos'' ~> cbullets)
-                (player pi ~> pbullets)
-            cg <- transferAmmo maxGrenades
-                (cell npos'' ~> cgrenades)
-                (player pi ~> pgrenades)
-            -- Pick treasures
-            ctr <- getS (cell npos'' ~> ctreasures)
-            ptr <- getS (player pi ~> ptreasure)
-            if and [ptr == Nothing, length ctr > 0]
+            out <- gets $ isOutside npos
+            if out
                 then do
-                    let ctr' = tail ctr
-                    let ptr' = Just $ head ctr
-                    updS (cell npos'' ~> ctreasures) ctr'
-                    updS (player pi ~> ptreasure) ptr'
-                else
-                    return ()
-            let nctr = (fmap ctResult) nct
-            return $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
+                    t <- getS (player pi ~> ptreasure)
+                    case t of
+                        Nothing -> returnCont $ GoR $ WentOutside Nothing
+                        (Just FakeTreasure) -> do
+                            updS (player pi ~> ptreasure) Nothing
+                            returnCont $ GoR $ WentOutside $ Just TurnedToAshesR
+                        (Just TrueTreasure) -> do
+                            updS (player pi ~> ptreasure) Nothing
+                            returnStop $ GoR $ WentOutside $ Just TrueTreasureR
+                            -- TODO: mark the game as ended?
+                else do
+                    ct <- getS (cell npos ~> ctype)
+                    -- Perform cell-type-specific actions
+                    npos' <- afterMove ct npos pi
+                    let npos'' = fromMaybe npos npos'
+                    updS (player pi ~> position) npos''
+                    -- If transported, determine the new cell type
+                    nct <- if isJust npos' then do
+                            nct' <- getS (cell npos'' ~> ctype)
+                            return $ Just nct'
+                        else
+                            return Nothing
+                    -- Pick ammo
+                    cb <- transferAmmo maxBullets
+                        (cell npos'' ~> cbullets)
+                        (player pi ~> pbullets)
+                    cg <- transferAmmo maxGrenades
+                        (cell npos'' ~> cgrenades)
+                        (player pi ~> pgrenades)
+                    -- Pick treasures
+                    ctr <- getS (cell npos'' ~> ctreasures)
+                    ptr <- getS (player pi ~> ptreasure)
+                    if and [ptr == Nothing, length ctr > 0]
+                        then do
+                            let ctr' = tail ctr
+                            let ptr' = Just $ head ctr
+                            updS (cell npos'' ~> ctreasures) ctr'
+                            updS (player pi ~> ptreasure) ptr'
+                        else
+                            return ()
+                    let nctr = (fmap ctResult) nct
+                    returnCont $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
         else
-            return $ GoR HitWall
+            returnCont $ GoR HitWall
 
-performAction (Grenade dir) = do
+performActions (Grenade dir:rest) = alwaysContinue rest $ do
     pi <- getS currentPlayer
     g <- getS (player pi ~> pgrenades)
     if g > 0
         then do
             updS (player pi ~> pgrenades) (g - 1)
             pos <- getS (player pi ~> position)
-            w <- getS (wall pos dir)
-            if w /= HardWall
-                then do
-                    updS (wall pos dir) NoWall
-                else
-                    return ()
+            out <- gets $ isOutside pos
+            if out then return ()
+                else do
+                    w <- getS (wall pos dir)
+                    if w /= HardWall
+                        then do
+                            updS (wall pos dir) NoWall
+                        else
+                            return ()
             return $ GrenadeR GrenadeOK
         else
             return $ GrenadeR NoGrenades

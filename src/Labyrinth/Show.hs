@@ -108,7 +108,7 @@ instance Show CellTypeResult where
 
 instance Show ActionResult where
     show (GoR HitWall) = "hit a wall"
-    show (GoR went) = execWriter $ do
+    show (GoR went@Went{}) = execWriter $ do
             tell "went onto "
             tell $ show $ getP onto went
             let transported = getP transportedTo went
@@ -134,6 +134,14 @@ instance Show ActionResult where
               commaList xs = intercalate ", " (take (n - 1) xs)
                           ++ " and " ++ xs !! (n - 1)
                           where n = length xs
+    show (GoR went@WentOutside{}) = execWriter $ do
+        tell "went outside"
+        let tr = getP treasureResult went
+        case tr of
+            Just TurnedToAshesR -> tell ", treasure turned to ashes"
+            Just TrueTreasureR  -> tell " with a true treasure - victory"
+            Nothing             -> return ()
+        return ()
 
     show (ShootR ShootOK)   = "ok"
     show (ShootR Scream)    = "a scream is heard"

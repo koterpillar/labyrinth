@@ -70,4 +70,5 @@ data ActionResult = GoR GoResult
 
 data MoveResult = MoveRes [ActionResult]
                 | WrongTurn
+                | InvalidMove
                 deriving (Eq)

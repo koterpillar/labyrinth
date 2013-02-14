@@ -321,3 +321,11 @@ test_combined = do
             updS (player 0 ~> pgrenades) 2
             updS (wall (Pos 0 0) R) NoWall
             updS currentPlayer 1
+
+test_invalid = do
+    assertMoveUpdates'
+        walled_labyrinth
+        (Move [goTowards R, goTowards R])
+        InvalidMove
+        $ return ()
+

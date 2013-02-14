@@ -155,3 +155,4 @@ instance Show MoveResult where
     show (MoveRes []) = "ok"
     show (MoveRes rs) = intercalate ", " $ map show rs
     show WrongTurn = "wrong turn"
+    show InvalidMove = "invalid move"

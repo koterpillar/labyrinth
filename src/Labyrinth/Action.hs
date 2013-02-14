@@ -13,13 +13,19 @@ performMove :: PlayerId -> Move -> State Labyrinth MoveResult
 performMove pi (Move actions) = do
     current <- getS currentPlayer
     if current /= pi
-        then return WrongTurn
-        else do
-            actionRes <- performActions actions
-            pCount <- gets playerCount
-            let next = (current + 1) `mod` pCount
-            updS currentPlayer next
-            return $ MoveRes actionRes
+    then return WrongTurn
+    else if length (filter isMovement actions) > 1
+    then return InvalidMove
+    else do
+        actionRes <- performActions actions
+        pCount <- gets playerCount
+        let next = (current + 1) `mod` pCount
+        updS currentPlayer next
+        return $ MoveRes actionRes
+
+isMovement :: Action -> Bool
+isMovement (Go _) = True
+isMovement _ = False
 
 transferAmmo :: Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
 transferAmmo maxAmount from to = do

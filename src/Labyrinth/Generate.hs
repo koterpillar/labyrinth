@@ -16,15 +16,6 @@ isLand c = isLand' $ getP ctype c
     where isLand' Land = True
           isLand' _    = False
 
-outerPos :: Labyrinth -> [(Position, Direction)]
-outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]
-                    , [(Pos x (h - 1), D) | x <- [0..w - 1]]
-                    , [(Pos 0 y, L)       | y <- [0..h - 1]]
-                    , [(Pos (w - 1) y, R) | y <- [0..h - 1]]
-                    ]
-    where w = labWidth l
-          h = labHeight l
-
 dotimes :: (Monad m) => Int -> m a -> m ()
 dotimes n = sequence_ . replicate n
 

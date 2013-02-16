@@ -111,6 +111,15 @@ isInside (Pos x y) l = and [ x >= 0
 isOutside :: Position -> Labyrinth -> Bool
 isOutside p = not . isInside p
 
+outerPos :: Labyrinth -> [(Position, Direction)]
+outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]
+                    , [(Pos x (h - 1), D) | x <- [0..w - 1]]
+                    , [(Pos 0 y, L)       | y <- [0..h - 1]]
+                    , [(Pos (w - 1) y, R) | y <- [0..h - 1]]
+                    ]
+    where w = labWidth l
+          h = labHeight l
+
 playerCount :: Labyrinth -> Int
 playerCount = length . players_
 

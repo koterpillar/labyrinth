@@ -6,98 +6,16 @@ import Labyrinth
 
 import Control.Monad.State
 
-import Data.List
-
 import Peeker
 
 import qualified Test.HUnit as HU
 import Test.Framework
+import TestLabyrinth.Common
 
 test_advance = do
     assertEqual
         (Pos 0 1) $
         advance (Pos 0 0) D
-
-w = 6
-h = 5
-
-player_one = initialPlayer $ Pos 0 0
-player_two = initialPlayer $ Pos 2 2
-
-empty_labyrinth = emptyLabyrinth w h [Pos 0 0, Pos 2 2]
-
-applyState = flip execState
-
-walled_labyrinth = applyState empty_labyrinth $ do
-    forM_ [0..w-1] $
-        \x -> forM_ [0..h-2] $
-            \y -> do
-                updS (wall (Pos x y) D) Wall
-    forM_ [0..w-2] $
-        \x -> forM_ [0..h-1] $
-            \y -> do
-                updS (wall (Pos x y) R) Wall
-
-empty_expected = intercalate "\n" $ [ "+==+==+==+==+==+==+"
-                                    , "X.  .  .  .  .  . X"
-                                    , "+  +  +  +  +  +  +"
-                                    , "X.  .  .  .  .  . X"
-                                    , "+  +  +  +  +  +  +"
-                                    , "X.  .  .  .  .  . X"
-                                    , "+  +  +  +  +  +  +"
-                                    , "X.  .  .  .  .  . X"
-                                    , "+  +  +  +  +  +  +"
-                                    , "X.  .  .  .  .  . X"
-                                    , "+==+==+==+==+==+==+"
-                                    , ""
-                                    , "0: Player (0, 0), 3B, 3G"
-                                    , "1: Player (2, 2), 3B, 3G"
-                                    , "Current player: 0"
-                                    ]
-
-interesting_labyrinth = applyState empty_labyrinth $ do
-    updS (player 0 ~> position) (Pos 1 1)
-    updS (player 1 ~> position) (Pos 3 3)
-    updS (cell (Pos 1 0) ~> ctype) Armory
-    updS (cell (Pos 2 0) ~> ctype) $ River D
-    updS (cell (Pos 4 0) ~> ctype) $ Pit 1
-    updS (cell (Pos 2 1) ~> ctype) $ River D
-    updS (cell (Pos 4 1) ~> ctype) $ Pit 2
-    updS (cell (Pos 1 2) ~> ctype) RiverDelta
-    updS (cell (Pos 2 2) ~> ctype) $ River L
-    updS (cell (Pos 3 2) ~> ctype) $ Pit 0
-    updS (wall (Pos 3 0) U) $ Wall
-    updS (wall (Pos 0 3) L) $ NoWall
-    updS (wall (Pos 4 4) D) $ NoWall
-    updS (cell (Pos 5 3) ~> ctreasures) $ [TrueTreasure]
-    updS (cell (Pos 1 3) ~> ctreasures) $ [FakeTreasure]
-
-interesting_expected = intercalate "\n" $ [ "+==+==+==+--+==+==+"
-                                          , "X.  A  v  .  2  . X"
-                                          , "+  +  +  +  +  +  +"
-                                          , "X.  .  v  .  3  . X"
-                                          , "+  +  +  +  +  +  +"
-                                          , "X.  O  <  1  .  . X"
-                                          , "+  +  +  +  +  +  +"
-                                          , " .  .  .  .  .  . X"
-                                          , "+  +  +  +  +  +  +"
-                                          , "X.  .  .  .  .  . X"
-                                          , "+==+==+==+==+  +==+"
-                                          , ""
-                                          , "0: Player (1, 1), 3B, 3G"
-                                          , "1: Player (3, 3), 3B, 3G"
-                                          , "Current player: 0"
-                                          , "(1, 3): fake treasure"
-                                          , "(5, 3): true treasure"
-                                          ]
-
-test_show_labyrinth = do
-    assertEqual
-        empty_expected $
-        show empty_labyrinth
-    assertEqual
-        interesting_expected $
-        show interesting_labyrinth
 
 assertMoveUpdates :: Labyrinth -> PlayerId -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
 assertMoveUpdates initialLab pi move result labUpdate = do

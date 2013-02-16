@@ -1,21 +1,14 @@
 {-# OPTIONS_GHC -F -pgmF htfpp #-}
 {-# Language TemplateHaskell #-}
 
-module TestLabyrinth.Show (htf_thisModulesTests) where
+module TestLabyrinth.ShowMove (htf_thisModulesTests) where
 
 import Labyrinth
 
-import Control.Monad
-
 import Data.DeriveTH
 
-import Text.Parsec
-
 import Test.Framework
-import qualified Test.HUnit as HU
-
-assertShowEquals :: (Show a) => String -> a -> HU.Assertion
-assertShowEquals message move = assertEqual message $ show move
+import TestLabyrinth.Common
 
 test_show_move = do
     assertShowEquals "skip" $

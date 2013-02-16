@@ -24,6 +24,10 @@ instance Show CellType where
 instance Show Cell where
     show c = show (ctype_ c) ++ " "
 
+instance Show Treasure where
+    show TrueTreasure = "true treasure"
+    show FakeTreasure = "fake treasure"
+
 instance Show Player where
     show p = "Player "
           ++ show (position_ p)
@@ -71,12 +75,19 @@ showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
 showCurrentPlayer :: Labyrinth -> [String]
 showCurrentPlayer l = ["Current player: " ++ show (getP currentPlayer l)]
 
+showTreasures :: Labyrinth -> [String]
+showTreasures = concat . map showCellTreasures . allPosCells
+    where showCellTreasures (p, c) = if t == [] then [] else [treasureStr]
+              where t = getP ctreasures c
+                    treasureStr = show p ++ ": " ++ (intercalate ", " $ map show t)
+
 instance Show Labyrinth where
-    show l = intercalate "\n" $ foldr1 (++) parts
+    show l = intercalate "\n" $ concat parts
         where parts = map ($ l) [ showMap
                                 , const [""]
                                 , showPlayers
                                 , showCurrentPlayer
+                                , showTreasures
                                 ]
 
 instance Show Direction where

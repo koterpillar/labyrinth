@@ -69,6 +69,8 @@ interesting_labyrinth = applyState empty_labyrinth $ do
     updS (wall (Pos 3 0) U) $ Wall
     updS (wall (Pos 0 3) L) $ NoWall
     updS (wall (Pos 4 4) D) $ NoWall
+    updS (cell (Pos 5 3) ~> ctreasures) $ [TrueTreasure]
+    updS (cell (Pos 1 3) ~> ctreasures) $ [FakeTreasure]
 
 interesting_expected = intercalate "\n" $ [ "+==+==+==+--+==+==+"
                                           , "X.  A  v  .  2  . X"
@@ -85,6 +87,8 @@ interesting_expected = intercalate "\n" $ [ "+==+==+==+--+==+==+"
                                           , "0: Player (1, 1), 3B, 3G"
                                           , "1: Player (3, 3), 3B, 3G"
                                           , "Current player: 0"
+                                          , "(1, 3): fake treasure"
+                                          , "(5, 3): true treasure"
                                           ]
 
 test_show_labyrinth = do

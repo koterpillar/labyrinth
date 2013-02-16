@@ -23,6 +23,7 @@ deriveSafeCopy 0 'base ''CellType
 deriveSafeCopy 0 'base ''Cell
 deriveSafeCopy 0 'base ''Position
 deriveSafeCopy 0 'base ''Treasure
+deriveSafeCopy 0 'base ''Health
 deriveSafeCopy 0 'base ''Player
 deriveSafeCopy 0 'base ''Labyrinth
 

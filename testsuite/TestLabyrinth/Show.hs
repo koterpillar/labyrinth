@@ -13,7 +13,6 @@ import Text.Parsec
 
 import Test.Framework
 import qualified Test.HUnit as HU
-import Test.QuickCheck
 
 assertShowEquals :: (Show a) => String -> a -> HU.Assertion
 assertShowEquals message move = assertEqual message $ show move

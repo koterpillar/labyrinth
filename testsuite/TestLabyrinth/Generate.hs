@@ -40,3 +40,16 @@ prop_has_required_types l = and $ map (\ct -> typeExists ct cells) requiredTypes
                           , HospitalR
                           , LandR
                           ]
+
+prop_has_true_treasure :: Labyrinth -> Bool
+prop_has_true_treasure = (1 ==) . length . filter hasTrueTreasure . allCells
+    where hasTrueTreasure = ([TrueTreasure] ==) . getP ctreasures
+
+prop_enough_fake_treasures :: Labyrinth -> Bool
+prop_enough_fake_treasures l = fakeTreasureCount >= 1 && fakeTreasureCount <= (playerCount l)
+    where fakeTreasureCount = length $ filter hasFakeTreasure $ allCells l
+          hasFakeTreasure = ([FakeTreasure] ==) . getP ctreasures
+
+prop_no_treasures_together :: Labyrinth -> Bool
+prop_no_treasures_together = and . map ((1 >=) . treasureCount) . allCells
+    where treasureCount = length . getP ctreasures

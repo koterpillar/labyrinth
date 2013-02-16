@@ -214,6 +214,20 @@ test_grenade = do
         $ do
             updS currentPlayer 1
 
+test_shoot = do
+    let duel = applyState empty_labyrinth $ do
+        updS (player 0 ~> position) $ Pos 0 2
+    assertMoveUpdates'
+        duel
+        (Move [Shoot R])
+        (MoveRes [ShootR Scream])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> pbullets) 2
+            updS (player 1 ~> phealth) Wounded
+            updS (player 1 ~> pbullets) 0
+            updS (cell (Pos 2 2) ~> cbullets) 3
+
 test_outside = do
     let lab_no_treasure = applyState interesting_labyrinth $ do
         updS (player 0 ~> position) (Pos 0 3)

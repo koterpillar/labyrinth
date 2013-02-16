@@ -2,6 +2,7 @@ module Labyrinth.Action (performMove) where
 
 import Control.Monad.State
 
+import Data.List
 import Data.Maybe
 
 import Labyrinth.Map
@@ -27,11 +28,13 @@ isMovement :: Action -> Bool
 isMovement (Go _) = True
 isMovement _ = False
 
-transferAmmo :: Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
+transferAmmo :: Maybe Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
 transferAmmo maxAmount from to = do
     found <- getS from
     has <- getS to
-    let amount = min found $ maxAmount - has
+    let amount = case maxAmount of
+                     (Just max) -> min found $ max - has
+                     Nothing    -> found
     let found' = found - amount
     let has' = has + amount
     updS from found'
@@ -107,10 +110,10 @@ performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in
                         else
                             return Nothing
                     -- Pick ammo
-                    cb <- transferAmmo maxBullets
+                    cb <- transferAmmo (Just maxBullets)
                         (cell npos'' ~> cbullets)
                         (player pi ~> pbullets)
-                    cg <- transferAmmo maxGrenades
+                    cg <- transferAmmo (Just maxGrenades)
                         (cell npos'' ~> cgrenades)
                         (player pi ~> pgrenades)
                     -- Pick treasures
@@ -148,3 +151,50 @@ performActions (Grenade dir:rest) = alwaysContinue rest $ do
             return $ GrenadeR GrenadeOK
         else
             return $ GrenadeR NoGrenades
+
+performActions (Shoot dir:rest) = alwaysContinue rest $ do
+    pi <- getS currentPlayer
+    b <- getS (player pi ~> pbullets)
+    if b > 0
+        then do
+            updS (player pi ~> pbullets) (b - 1)
+            pos <- getS (player pi ~> position)
+            res <- performShoot pos dir
+            return $ ShootR res
+        else
+            return $ ShootR NoBullets
+
+playersAliveAt :: Position -> State Labyrinth [PlayerId]
+playersAliveAt pos = do
+    cnt <- gets playerCount
+    let allPlayers = [0..cnt - 1]
+    filterM (playerAliveAt pos) allPlayers
+
+playerAliveAt :: Position -> PlayerId -> State Labyrinth Bool
+playerAliveAt pos i = do
+    pp <- getS (player i ~> position)
+    ph <- getS (player i ~> phealth)
+    return $ pos == pp && ph /= Dead
+
+performShoot :: Position -> Direction -> State Labyrinth ShootResult
+performShoot pos dir = do
+    pi <- getS currentPlayer
+    cnt <- gets playerCount
+    hit <- playersAliveAt pos
+    let othersHit = delete pi hit
+    outside <- gets $ isOutside pos
+    if length othersHit == 0
+        then if outside
+            then return ShootOK
+            else do
+                -- TODO: check for a wall
+                performShoot (advance pos dir) dir
+        else do
+            forM_ othersHit $ \i -> do
+                ph <- getS (player i ~> phealth)
+                when (ph == Healthy) $ do
+                    updS (player i ~> phealth) Wounded
+                when (ph == Wounded) $ do
+                    updS (player i ~> phealth) Dead
+                transferAmmo Nothing (player i ~> pbullets) (cell pos ~> cbullets)
+            return Scream

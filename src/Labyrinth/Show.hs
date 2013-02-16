@@ -3,6 +3,7 @@ module Labyrinth.Show where
 import Labyrinth.Map
 import Labyrinth.Move
 
+import Control.Monad.Reader
 import Control.Monad.Writer
 
 import Data.List
@@ -28,13 +29,28 @@ instance Show Treasure where
     show TrueTreasure = "true treasure"
     show FakeTreasure = "fake treasure"
 
+instance Show Health where
+    show Healthy = "healthy"
+    show Wounded = "wounded"
+    show Dead    = "dead"
+
 instance Show Player where
-    show p = "Player "
-          ++ show (position_ p)
-          ++ ", "
-          ++ show (pbullets_ p) ++ "B"
-          ++ ", "
-          ++ show (pgrenades_ p) ++ "G"
+    show p = execWriter $ (flip runReaderT) p $ do
+        tell "Player "
+        pos <- askS position
+        tell $ show pos
+        tell ", "
+        b <- askS pbullets
+        tell $ show b
+        tell "B"
+        tell ", "
+        g <- askS pgrenades
+        tell $ show g
+        tell "G"
+        h <- askS phealth
+        when (h /= Healthy) $ do
+            tell ", "
+            tell $ show h
 
 showH :: Wall -> String
 showH NoWall   = "  "

@@ -58,7 +58,11 @@ advance (Pos x y) U = Pos x (y - 1)
 advance (Pos x y) R = Pos (x + 1) y
 advance (Pos x y) D = Pos x (y + 1)
 
+data Health = Healthy | Wounded | Dead
+              deriving (Eq)
+
 data Player = Player { position_  :: Position
+                     , phealth_   :: Health
                      , pbullets_  :: Int
                      , pgrenades_ :: Int
                      , ptreasure_ :: Maybe Treasure
@@ -75,6 +79,7 @@ maxGrenades = 3
 
 initialPlayer :: Position -> Player
 initialPlayer pos = Player { position_  = pos
+                           , phealth_   = Healthy
                            , pbullets_  = maxBullets
                            , pgrenades_ = maxGrenades
                            , ptreasure_ = Nothing

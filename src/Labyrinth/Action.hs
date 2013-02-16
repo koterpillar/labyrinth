@@ -44,6 +44,9 @@ afterMove Armory _ pi = do
     updS (player pi ~> pbullets) maxBullets
     updS (player pi ~> pgrenades) maxGrenades
     return Nothing
+afterMove Hospital _ pi = do
+    updS (player pi ~> phealth) Healthy
+    return Nothing
 afterMove (Pit i) _ pi = do
     npits <- gets pitCount
     let i' = (i + 1) `mod` npits

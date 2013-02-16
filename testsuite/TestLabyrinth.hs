@@ -65,6 +65,20 @@ test_move_to_armory = do
             updS (player 0 ~> pgrenades) 3
             updS currentPlayer 1
 
+test_move_to_hospital = do
+    let lab = applyState interesting_labyrinth $ do
+        updS (player 0 ~> phealth) Wounded
+        updS (player 0 ~> pbullets) 0
+        updS (player 0 ~> position) $ Pos 1 4
+    assertMoveUpdates'
+        lab
+        (Move [goTowards R])
+        (MoveRes [GoR $ Went HospitalR 0 0 0 Nothing])
+        $ do
+            updS (player 0 ~> position) $ Pos 2 4
+            updS (player 0 ~> phealth) Healthy
+            updS currentPlayer 1
+
 test_move_to_pit = do
     let lab = applyState interesting_labyrinth $ do
         updS currentPlayer 1

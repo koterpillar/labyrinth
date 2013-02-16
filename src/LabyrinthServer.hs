@@ -22,7 +22,10 @@ import LabyrinthServer.Data
 
 createLabyrinth :: (MonadIO m) => Int -> m Labyrinth
 createLabyrinth n = do
-    return $ emptyLabyrinth 5 6 $ map (\i -> Pos i i) [0..n - 1]
+    gen <- liftIO getStdGen
+    let (l, gen') = generateLabyrinth 5 6 n gen
+    liftIO $ setStdGen gen'
+    return l
 
 newId :: (MonadIO m) => m String
 newId = sequence $ take 32 $ repeat $ liftIO $ randomRIO ('a', 'z')

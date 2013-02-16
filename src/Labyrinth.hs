@@ -1,4 +1,5 @@
 module Labyrinth ( module Labyrinth.Action
+                 , module Labyrinth.Generate
                  , module Labyrinth.Map
                  , module Labyrinth.Move
                  , module Labyrinth.Read
@@ -6,6 +7,7 @@ module Labyrinth ( module Labyrinth.Action
                  ) where
 
 import Labyrinth.Action
+import Labyrinth.Generate
 import Labyrinth.Map
 import Labyrinth.Move
 import Labyrinth.Read

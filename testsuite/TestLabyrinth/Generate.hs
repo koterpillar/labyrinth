@@ -53,3 +53,12 @@ prop_enough_fake_treasures l = fakeTreasureCount >= 1 && fakeTreasureCount <= (p
 prop_no_treasures_together :: Labyrinth -> Bool
 prop_no_treasures_together = and . map ((1 >=) . treasureCount) . allCells
     where treasureCount = length . getP ctreasures
+
+prop_treasures_on_land :: Labyrinth -> Bool
+prop_treasures_on_land = and . map isLand . filter hasTreasures . allCells
+    where isLand = isCellType LandR
+          hasTreasures = (0 <) . length . getP ctreasures
+
+prop_enough_exits :: Labyrinth -> Bool
+prop_enough_exits l = (2 <=) $ length $ filter isExit $ outerPos l
+    where isExit (p, d) = getP (wall p d) l /= HardWall

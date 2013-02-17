@@ -237,6 +237,15 @@ test_shoot = do
         $ do
             updS (player 0 ~> pbullets) 2
             updS (player 1 ~> phealth) Dead
+    let duel3 = applyState duel1 $ do
+        updS (wall (Pos 0 2) R) Wall
+    assertMoveUpdates'
+        duel3
+        (Move [Shoot R])
+        (MoveRes [ShootR ShootOK])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> pbullets) 2
 
 test_outside = do
     let lab_no_treasure = applyState interesting_labyrinth $ do

@@ -195,8 +195,10 @@ performShoot pos dir = do
         then if outside
             then return ShootOK
             else do
-                -- TODO: check for a wall
-                performShoot (advance pos dir) dir
+                w <- getS (wall pos dir)
+                if w == NoWall
+                    then performShoot (advance pos dir) dir
+                    else return ShootOK
         else do
             forM_ othersHit $ \i -> do
                 ph <- getS (player i ~> phealth)

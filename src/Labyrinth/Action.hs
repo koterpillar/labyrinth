@@ -158,10 +158,14 @@ performActions (Shoot dir:rest) = alwaysContinue rest $ do
     b <- getS (player pi ~> pbullets)
     if b > 0
         then do
-            updS (player pi ~> pbullets) (b - 1)
             pos <- getS (player pi ~> position)
-            res <- performShoot pos dir
-            return $ ShootR res
+            ct <- getS (cell pos ~> ctype)
+            if ct == Hospital || ct == Armory
+                then return $ ShootR Forbidden
+                else do
+                    updS (player pi ~> pbullets) (b - 1)
+                    res <- performShoot pos dir
+                    return $ ShootR res
         else
             return $ ShootR NoBullets
 
@@ -186,25 +190,32 @@ playerAt pos i = do
 
 performShoot :: Position -> Direction -> State Labyrinth ShootResult
 performShoot pos dir = do
-    pi <- getS currentPlayer
-    cnt <- gets playerCount
-    hit <- playersAliveAt pos
-    let othersHit = delete pi hit
-    outside <- gets $ isOutside pos
-    if length othersHit == 0
-        then if outside
-            then return ShootOK
-            else do
-                w <- getS (wall pos dir)
-                if w == NoWall
-                    then performShoot (advance pos dir) dir
-                    else return ShootOK
+    ct <- getS (cell pos ~> ctype)
+    if ct == Hospital
+        then return ShootOK
         else do
-            forM_ othersHit $ \i -> do
-                ph <- getS (player i ~> phealth)
-                when (ph == Healthy) $ do
-                    updS (player i ~> phealth) Wounded
-                when (ph == Wounded) $ do
-                    updS (player i ~> phealth) Dead
-                transferAmmo Nothing (player i ~> pbullets) (cell pos ~> cbullets)
-            return Scream
+            pi <- getS currentPlayer
+            cnt <- gets playerCount
+            hit <- playersAliveAt pos
+            let othersHit = delete pi hit
+            outside <- gets $ isOutside pos
+            if length othersHit == 0
+                then if outside
+                    then return ShootOK
+                    else do
+                        if ct == Armory
+                            then return ShootOK
+                            else do
+                                w <- getS (wall pos dir)
+                                if w == NoWall
+                                    then performShoot (advance pos dir) dir
+                                    else return ShootOK
+                else do
+                    forM_ othersHit $ \i -> do
+                        ph <- getS (player i ~> phealth)
+                        when (ph == Healthy) $ do
+                            updS (player i ~> phealth) Wounded
+                        when (ph == Wounded) $ do
+                            updS (player i ~> phealth) Dead
+                        transferAmmo Nothing (player i ~> pbullets) (cell pos ~> cbullets)
+                    return Scream

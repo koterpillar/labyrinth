@@ -8,12 +8,15 @@ import Data.Acid (AcidState, openLocalState)
 import Data.Acid.Advanced (query', update')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.List
+import qualified Data.Map as M
+import Data.Maybe
 import qualified Data.Text as T
 
 import Happstack.Server hiding (result)
 
 import Peeker
 
+import System.Environment
 import System.Random
 
 import Labyrinth hiding (performMove)
@@ -30,11 +33,21 @@ createLabyrinth n = do
 newId :: (MonadIO m) => m String
 newId = sequence $ take 32 $ repeat $ liftIO $ randomRIO ('a', 'z')
 
+getPort :: IO Int
+getPort = do
+    env <- getEnvironment
+    let envMap = M.fromList env
+    let port = M.lookup "PORT" envMap
+    let port' = fromMaybe "8000" port
+    return $ read port'
+
 main :: IO ()
 main = do
+    port <- getPort
+    let conf = nullConf { port = port }
     bracket (openLocalState noGames)
         (createCheckpointAndClose)
-        (simpleHTTP nullConf . myApp)
+        (simpleHTTP conf . myApp)
 
 myApp :: AcidState Games -> ServerPart Response
 myApp acid = msum (map ($ acid) actions) `mplus` fileServing

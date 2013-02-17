@@ -91,11 +91,20 @@ showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
 showCurrentPlayer :: Labyrinth -> [String]
 showCurrentPlayer l = ["Current player: " ++ show (getP currentPlayer l)]
 
-showTreasures :: Labyrinth -> [String]
-showTreasures = concat . map showCellTreasures . allPosCells
-    where showCellTreasures (p, c) = if t == [] then [] else [treasureStr]
-              where t = getP ctreasures c
-                    treasureStr = show p ++ ": " ++ (intercalate ", " $ map show t)
+showItems :: Labyrinth -> [String]
+showItems = concat . map showCellItemsOn . allPosCells
+    where showCellItemsOn (p, c) = if itemStr == "" then [] else [showStr]
+              where itemStr = showCellItems c
+                    showStr = show p ++ ": " ++ itemStr
+
+showCellItems :: Cell -> String
+showCellItems c = intercalate ", " $ execWriter $ (flip runReaderT) c $ do
+    b <- askS cbullets
+    when (b > 0) $ tell [show b ++ "B"]
+    g <- askS cgrenades
+    when (g > 0) $ tell [show g ++ "G"]
+    t <- askS ctreasures
+    tell $ map show t
 
 instance Show Labyrinth where
     show l = intercalate "\n" $ concat parts
@@ -103,7 +112,7 @@ instance Show Labyrinth where
                                 , const [""]
                                 , showPlayers
                                 , showCurrentPlayer
-                                , showTreasures
+                                , showItems
                                 ]
 
 instance Show Direction where

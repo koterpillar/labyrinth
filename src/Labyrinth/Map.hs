@@ -161,7 +161,7 @@ player :: PlayerId -> Peek Labyrinth Player
 player i = players ~> listP i
 
 allPositions :: Labyrinth -> [Position]
-allPositions l = [Pos x y | x <- [0..w - 1], y <- [0..h - 1]]
+allPositions l = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
     where w = labWidth l
           h = labHeight l
 

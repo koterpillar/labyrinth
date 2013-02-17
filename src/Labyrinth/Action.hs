@@ -19,8 +19,9 @@ performMove pi (Move actions) = do
             then return InvalidMove
             else do
                 actionRes <- performActions actions
+                queue <- alivePlayers
                 pCount <- gets playerCount
-                let next = (current + 1) `mod` pCount
+                let next = head $ tail $ dropWhile (current /=) $ cycle queue
                 updS currentPlayer next
                 return $ MoveRes actionRes
 
@@ -164,17 +165,24 @@ performActions (Shoot dir:rest) = alwaysContinue rest $ do
         else
             return $ ShootR NoBullets
 
+alivePlayers :: State Labyrinth [PlayerId]
+alivePlayers = do
+    cnt <- gets playerCount
+    filterM playerAlive [0..cnt - 1]
+    where playerAlive :: PlayerId -> State Labyrinth Bool
+          playerAlive i = do
+              ph <- getS (player i ~> phealth)
+              return $ ph /= Dead
+
 playersAliveAt :: Position -> State Labyrinth [PlayerId]
 playersAliveAt pos = do
-    cnt <- gets playerCount
-    let allPlayers = [0..cnt - 1]
-    filterM (playerAliveAt pos) allPlayers
+    alive <- alivePlayers
+    filterM (playerAt pos) alive
 
-playerAliveAt :: Position -> PlayerId -> State Labyrinth Bool
-playerAliveAt pos i = do
+playerAt :: Position -> PlayerId -> State Labyrinth Bool
+playerAt pos i = do
     pp <- getS (player i ~> position)
-    ph <- getS (player i ~> phealth)
-    return $ pos == pp && ph /= Dead
+    return $ pos == pp
 
 performShoot :: Position -> Direction -> State Labyrinth ShootResult
 performShoot pos dir = do

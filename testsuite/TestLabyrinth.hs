@@ -8,25 +8,14 @@ import Control.Monad.State
 
 import Peeker
 
-import qualified Test.HUnit as HU
 import Test.Framework
 import TestLabyrinth.Common
+import TestLabyrinth.Move.Common
 
 test_advance = do
     assertEqual
         (Pos 0 1) $
         advance (Pos 0 0) D
-
-assertMoveUpdates :: Labyrinth -> PlayerId -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
-assertMoveUpdates initialLab pi move result labUpdate = do
-    let updatedLab = execState labUpdate initialLab
-    assertEqual
-        (result, updatedLab) $
-        runState (performMove pi move) initialLab
-
-assertMoveUpdates' :: Labyrinth -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
-assertMoveUpdates' initialLab = assertMoveUpdates initialLab pi
-    where pi = getP currentPlayer initialLab
 
 test_wrong_turn = do
     assertMoveUpdates
@@ -213,96 +202,6 @@ test_grenade = do
         (MoveRes [GrenadeR NoGrenades])
         $ do
             updS currentPlayer 1
-
-test_shoot = do
-    let shootPos = Pos 0 2
-    let target = Pos 2 2
-    let duel = applyState empty_labyrinth $ do
-        updS (player 0 ~> position) shootPos
-    assertMoveUpdates'
-        duel
-        (Move [Shoot R])
-        (MoveRes [ShootR Scream])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-            updS (player 1 ~> phealth) Wounded
-            updS (player 1 ~> pbullets) 0
-            updS (cell target ~> cbullets) 3
-    let duel_wounded = applyState duel $ do
-        updS (player 1 ~> phealth) Wounded
-        updS (player 1 ~> pbullets) 0
-    assertMoveUpdates'
-        duel_wounded
-        (Move [Shoot R])
-        (MoveRes [ShootR Scream])
-        $ do
-            updS (player 0 ~> pbullets) 2
-            updS (player 1 ~> phealth) Dead
-    let duel_wall = applyState duel $ do
-        updS (wall shootPos R) Wall
-    assertMoveUpdates'
-        duel_wall
-        (Move [Shoot R])
-        (MoveRes [ShootR ShootOK])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-    let duel_from_hospital = applyState duel $ do
-        updS (cell shootPos ~> ctype) Hospital
-    assertMoveUpdates'
-        duel_from_hospital
-        (Move [Shoot R])
-        (MoveRes [ShootR Forbidden])
-        $ do
-            updS currentPlayer 1
-    let duel_from_armory = applyState duel $ do
-        updS (cell shootPos ~> ctype) Armory
-    assertMoveUpdates'
-        duel_from_armory
-        (Move [Shoot R])
-        (MoveRes [ShootR Forbidden])
-        $ do
-            updS currentPlayer 1
-    let duel_through_hospital = applyState duel $ do
-        updS (cell (Pos 1 2) ~> ctype) Hospital
-    assertMoveUpdates'
-        duel_through_hospital
-        (Move [Shoot R])
-        (MoveRes [ShootR ShootOK])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-    let duel_through_armory = applyState duel $ do
-        updS (cell (Pos 1 2) ~> ctype) Armory
-    assertMoveUpdates'
-        duel_through_armory
-        (Move [Shoot R])
-        (MoveRes [ShootR ShootOK])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-    let duel_into_hospital = applyState duel $ do
-        updS (cell target ~> ctype) Hospital
-    assertMoveUpdates'
-        duel_into_hospital
-        (Move [Shoot R])
-        (MoveRes [ShootR ShootOK])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-    let duel_into_armory = applyState duel $ do
-        updS (cell target ~> ctype) Armory
-    assertMoveUpdates'
-        duel_into_armory
-        (Move [Shoot R])
-        (MoveRes [ShootR Scream])
-        $ do
-            updS currentPlayer 1
-            updS (player 0 ~> pbullets) 2
-            updS (player 1 ~> phealth) Wounded
-            updS (player 1 ~> pbullets) 0
-            updS (cell target ~> cbullets) 3
 
 test_outside = do
     let lab_no_treasure = applyState interesting_labyrinth $ do

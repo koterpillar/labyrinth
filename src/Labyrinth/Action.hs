@@ -42,6 +42,11 @@ transferAmmo maxAmount from to = do
     updS to has'
     return found
 
+transferAmmo_ :: Maybe Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth ()
+transferAmmo_ maxAmount from to = do
+    transferAmmo maxAmount from to
+    return ()
+
 afterMove :: CellType -> Position -> PlayerId -> State Labyrinth (Maybe Position)
 afterMove Land _ _ = return Nothing
 afterMove Armory _ pi = do
@@ -190,15 +195,15 @@ playerAt pos i = do
 
 performShoot :: Position -> Direction -> State Labyrinth ShootResult
 performShoot pos dir = do
+    outside <- gets $ isOutside pos
     ct <- getS (cell pos ~> ctype)
-    if ct == Hospital
+    pi <- getS currentPlayer
+    cnt <- gets playerCount
+    hit <- playersAliveAt pos
+    if not outside && ct == Hospital
         then return ShootOK
         else do
-            pi <- getS currentPlayer
-            cnt <- gets playerCount
-            hit <- playersAliveAt pos
             let othersHit = delete pi hit
-            outside <- gets $ isOutside pos
             if length othersHit == 0
                 then if outside
                     then return ShootOK
@@ -213,9 +218,14 @@ performShoot pos dir = do
                 else do
                     forM_ othersHit $ \i -> do
                         ph <- getS (player i ~> phealth)
+                        if outside
+                            then updS (player i ~> pbullets) 0
+                            else transferAmmo_ Nothing (player i ~> pbullets) (cell pos ~> cbullets)
                         when (ph == Healthy) $ do
                             updS (player i ~> phealth) Wounded
                         when (ph == Wounded) $ do
+                            if outside
+                                then updS (player i ~> pgrenades) 0
+                                else transferAmmo_ Nothing (player i ~> pgrenades) (cell pos ~> cgrenades)
                             updS (player i ~> phealth) Dead
-                        transferAmmo Nothing (player i ~> pbullets) (cell pos ~> cbullets)
                     return Scream

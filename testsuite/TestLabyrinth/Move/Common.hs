@@ -23,4 +23,3 @@ assertMoveUpdates initialLab pi move result labUpdate = do
 assertMoveUpdates' :: Labyrinth -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
 assertMoveUpdates' initialLab = assertMoveUpdates initialLab pi
     where pi = getP currentPlayer initialLab
-

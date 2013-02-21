@@ -173,36 +173,6 @@ test_found_treasure = do
             updS (player 0 ~> position) (Pos 0 1)
             updS currentPlayer 1
 
-test_grenade = do
-    assertMoveUpdates'
-        walled_labyrinth
-        (Move [Grenade R])
-        (MoveRes [GrenadeR GrenadeOK])
-        $ do
-            updS (wall (Pos 0 0) R) NoWall
-            updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
-    assertMoveUpdates'
-        empty_labyrinth
-        (Move [Grenade R])
-        (MoveRes [GrenadeR GrenadeOK])
-        $ do
-            updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
-    assertMoveUpdates'
-        walled_labyrinth
-        (Move [Grenade L])
-        (MoveRes [GrenadeR GrenadeOK])
-        $ do
-            updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
-    assertMoveUpdates'
-        (applyState walled_labyrinth $ updS (player 0 ~> pgrenades) 0)
-        (Move [Grenade R])
-        (MoveRes [GrenadeR NoGrenades])
-        $ do
-            updS currentPlayer 1
-
 test_outside = do
     let lab_no_treasure = applyState interesting_labyrinth $ do
         updS (player 0 ~> position) (Pos 0 3)
@@ -253,4 +223,3 @@ test_invalid = do
         (Move [goTowards R, goTowards R])
         InvalidMove
         $ return ()
-

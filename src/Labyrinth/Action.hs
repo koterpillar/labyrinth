@@ -18,6 +18,7 @@ performMove pi (Move actions) = do
         else if length (filter isMovement actions) > 1
             then return InvalidMove
             else do
+                updS (player pi ~> pfell) False
                 actionRes <- performActions actions
                 queue <- alivePlayers
                 pCount <- gets playerCount
@@ -28,6 +29,26 @@ performMove pi (Move actions) = do
 isMovement :: Action -> Bool
 isMovement (Go _) = True
 isMovement _ = False
+
+returnContinue :: [Action] -> ActionResult -> State Labyrinth [ActionResult]
+returnContinue rest res = do
+    restRes <- performActions rest
+    return $ res:restRes
+
+returnStop :: ActionResult -> State Labyrinth [ActionResult]
+returnStop = return . (:[])
+
+alwaysContinue :: [Action] -> State Labyrinth ActionResult -> State Labyrinth [ActionResult]
+alwaysContinue rest act = do
+    res <- act
+    returnContinue rest res
+
+performActions :: [Action] -> State Labyrinth [ActionResult]
+performActions [] = return []
+performActions (act:rest) = case act of
+    Go dir      -> performMovement dir rest
+    Grenade dir -> alwaysContinue rest $ performGrenade dir
+    Shoot dir   -> alwaysContinue rest $ performShoot dir
 
 transferAmmo :: Maybe Int -> Peek Labyrinth Int -> Peek Labyrinth Int -> State Labyrinth Int
 transferAmmo maxAmount from to = do
@@ -47,42 +68,56 @@ transferAmmo_ maxAmount from to = do
     transferAmmo maxAmount from to
     return ()
 
-afterMove :: CellType -> Position -> PlayerId -> State Labyrinth (Maybe Position)
-afterMove Land _ _ = return Nothing
-afterMove Armory _ pi = do
-    updS (player pi ~> pbullets) maxBullets
-    updS (player pi ~> pgrenades) maxGrenades
-    return Nothing
-afterMove Hospital _ pi = do
-    updS (player pi ~> phealth) Healthy
-    return Nothing
-afterMove (Pit i) _ pi = do
-    npits <- gets pitCount
-    let i' = (i + 1) `mod` npits
-    npos <- gets (pit i')
-    return $ Just npos
-afterMove (River d) npos pi = do
-    let npos' = advance npos d
-    return $ Just npos'
-afterMove RiverDelta _ _ = return Nothing
+pickBullets :: State Labyrinth Int
+pickBullets = do
+    i <- getS currentPlayer
+    pos <- getS $ player i ~> position
+    out <- gets $ isOutside pos
+    if out
+        then return 0
+        else transferAmmo
+            (Just maxBullets)
+            (cell pos ~> cbullets)
+            (player i ~> pbullets)
 
-returnContinue :: [Action] -> ActionResult -> State Labyrinth [ActionResult]
-returnContinue rest res = do
-    restRes <- performActions rest
-    return $ res:restRes
+pickGrenades :: State Labyrinth Int
+pickGrenades = do
+    i <- getS currentPlayer
+    pos <- getS $ player i ~> position
+    out <- gets $ isOutside pos
+    if out
+        then return 0
+        else transferAmmo
+            (Just maxGrenades)
+            (cell pos ~> cgrenades)
+            (player i ~> pgrenades)
 
-returnStop :: ActionResult -> State Labyrinth [ActionResult]
-returnStop = return . (:[])
+afterMove :: State Labyrinth (Maybe Position)
+afterMove = do
+    pi <- getS currentPlayer
+    pos <- getS (player pi ~> position)
+    ct <- getS (cell pos ~> ctype)
+    case ct of
+        Land -> return Nothing
+        Armory -> do
+            updS (player pi ~> pbullets) maxBullets
+            updS (player pi ~> pgrenades) maxGrenades
+            return Nothing
+        Hospital -> do
+            updS (player pi ~> phealth) Healthy
+            return Nothing
+        Pit i -> do
+            npits <- gets pitCount
+            let i' = (i + 1) `mod` npits
+            pos' <- gets (pit i')
+            return $ Just pos'
+        River d -> do
+            let pos' = advance pos d
+            return $ Just pos'
+        RiverDelta -> return Nothing
 
-alwaysContinue :: [Action] -> State Labyrinth ActionResult -> State Labyrinth [ActionResult]
-alwaysContinue rest act = do
-    res <- act
-    returnContinue rest res
-
-performActions :: [Action] -> State Labyrinth [ActionResult]
-performActions [] = return []
-
-performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in do
+performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
+performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     w <- getS (wall pos dir)
@@ -106,7 +141,7 @@ performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in
                 else do
                     ct <- getS (cell npos ~> ctype)
                     -- Perform cell-type-specific actions
-                    npos' <- afterMove ct npos pi
+                    npos' <- afterMove
                     let npos'' = fromMaybe npos npos'
                     updS (player pi ~> position) npos''
                     -- If transported, determine the new cell type
@@ -116,16 +151,12 @@ performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in
                         else
                             return Nothing
                     -- Pick ammo
-                    cb <- transferAmmo (Just maxBullets)
-                        (cell npos'' ~> cbullets)
-                        (player pi ~> pbullets)
-                    cg <- transferAmmo (Just maxGrenades)
-                        (cell npos'' ~> cgrenades)
-                        (player pi ~> pgrenades)
+                    cb <- pickBullets
+                    cg <- pickGrenades
                     -- Pick treasures
                     ctr <- getS (cell npos'' ~> ctreasures)
                     ptr <- getS (player pi ~> ptreasure)
-                    if and [ptr == Nothing, length ctr > 0]
+                    if ptr == Nothing && length ctr > 0
                         then do
                             let ctr' = tail ctr
                             let ptr' = Just $ head ctr
@@ -138,16 +169,21 @@ performActions (Go (Towards dir):rest) = let returnCont = returnContinue rest in
         else
             returnCont $ GoR HitWall
 
-performActions (Grenade dir:rest) = alwaysContinue rest $ do
+performGrenade :: Direction -> State Labyrinth ActionResult
+performGrenade dir = do
     pi <- getS currentPlayer
     g <- getS (player pi ~> pgrenades)
     if g > 0
         then do
             updS (player pi ~> pgrenades) (g - 1)
+            pickGrenades
             pos <- getS (player pi ~> position)
             out <- gets $ isOutside pos
             if out then return ()
                 else do
+                    ct <- getS (cell pos ~> ctype)
+                    when (ct == Armory) $
+                        updS (player pi ~> pgrenades) maxGrenades
                     w <- getS (wall pos dir)
                     if w /= HardWall
                         then do
@@ -158,7 +194,8 @@ performActions (Grenade dir:rest) = alwaysContinue rest $ do
         else
             return $ GrenadeR NoGrenades
 
-performActions (Shoot dir:rest) = alwaysContinue rest $ do
+performShoot :: Direction -> State Labyrinth ActionResult
+performShoot dir = do
     pi <- getS currentPlayer
     b <- getS (player pi ~> pbullets)
     if b > 0
@@ -169,7 +206,8 @@ performActions (Shoot dir:rest) = alwaysContinue rest $ do
                 then return $ ShootR Forbidden
                 else do
                     updS (player pi ~> pbullets) (b - 1)
-                    res <- performShoot pos dir
+                    pickBullets
+                    res <- performShootFrom pos dir
                     return $ ShootR res
         else
             return $ ShootR NoBullets
@@ -186,15 +224,19 @@ alivePlayers = do
 playersAliveAt :: Position -> State Labyrinth [PlayerId]
 playersAliveAt pos = do
     alive <- alivePlayers
-    filterM (playerAt pos) alive
+    atPos <- filterM (playerAt pos) alive
+    filterM notFallen atPos
 
 playerAt :: Position -> PlayerId -> State Labyrinth Bool
 playerAt pos i = do
     pp <- getS (player i ~> position)
     return $ pos == pp
 
-performShoot :: Position -> Direction -> State Labyrinth ShootResult
-performShoot pos dir = do
+notFallen :: PlayerId -> State Labyrinth Bool
+notFallen i = (liftM not) $ getS (player i ~> pfell)
+
+performShootFrom :: Position -> Direction -> State Labyrinth ShootResult
+performShootFrom pos dir = do
     outside <- gets $ isOutside pos
     ct <- getS (cell pos ~> ctype)
     pi <- getS currentPlayer
@@ -213,7 +255,7 @@ performShoot pos dir = do
                             else do
                                 w <- getS (wall pos dir)
                                 if w == NoWall
-                                    then performShoot (advance pos dir) dir
+                                    then performShootFrom (advance pos dir) dir
                                     else return ShootOK
                 else do
                     forM_ othersHit $ \i -> do
@@ -223,6 +265,7 @@ performShoot pos dir = do
                             else transferAmmo_ Nothing (player i ~> pbullets) (cell pos ~> cbullets)
                         when (ph == Healthy) $ do
                             updS (player i ~> phealth) Wounded
+                            updS (player i ~> pfell) True
                         when (ph == Wounded) $ do
                             if outside
                                 then updS (player i ~> pgrenades) 0

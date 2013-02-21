@@ -23,6 +23,7 @@ hit h = do
     updS (player 1 ~> phealth) h
     updS (player 1 ~> pbullets) 0
     updS (cell target ~> cbullets) 3
+fell = updS (player 1 ~> pfell) True
 
 test_healthy = do
     assertMoveUpdates'
@@ -32,6 +33,7 @@ test_healthy = do
         $ do
             passTurnBullet
             hit Wounded
+            fell
 
 test_wounded = do
     let duel_wounded = applyState duel $ do
@@ -55,7 +57,8 @@ test_through_wall = do
         duel_wall
         (Move [Shoot R])
         (MoveRes [ShootR ShootOK])
-        $ passTurnBullet
+        $ do
+            passTurnBullet
 
 test_from_hospital = do
     let duel_from_hospital = applyState duel $ do
@@ -93,7 +96,8 @@ test_through_armory = do
         duel_through_armory
         (Move [Shoot R])
         (MoveRes [ShootR ShootOK])
-        $ passTurnBullet
+        $ do
+            passTurnBullet
 
 test_into_hospital = do
     let duel_into_hospital = applyState duel $ do
@@ -102,7 +106,8 @@ test_into_hospital = do
         duel_into_hospital
         (Move [Shoot R])
         (MoveRes [ShootR ShootOK])
-        $ passTurnBullet
+        $ do
+            passTurnBullet
 
 test_into_armory = do
     let duel_into_armory = applyState duel $ do
@@ -114,6 +119,7 @@ test_into_armory = do
         $ do
             passTurnBullet
             hit Wounded
+            fell
 
 test_outside = do
     let target' = Pos 6 2
@@ -128,3 +134,27 @@ test_outside = do
             passTurnBullet
             updS (player 1 ~> phealth) Wounded
             updS (player 1 ~> pbullets) 0
+            fell
+
+test_double_shot = do
+    assertMoveUpdates'
+        duel
+        (Move [Shoot R, Shoot R])
+        (MoveRes [ShootR Scream, ShootR ShootOK])
+        $ do
+            passTurnBullet
+            updS (player 0 ~> pbullets) 1
+            hit Wounded
+            fell
+
+test_found_bullets = do
+    let duel_bullets = applyState duel $ do
+        updS (cell shootPos ~> cbullets) 2
+    assertMoveUpdates'
+        duel_bullets
+        (Move $ replicate 5 $ Shoot U)
+        (MoveRes $ replicate 5 $ ShootR ShootOK)
+        $ do
+            passTurnBullet
+            updS (cell shootPos ~> cbullets) 0
+            updS (player 0 ~> pbullets) 0

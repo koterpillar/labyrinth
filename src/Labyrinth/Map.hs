@@ -66,6 +66,7 @@ data Player = Player { position_  :: Position
                      , pbullets_  :: Int
                      , pgrenades_ :: Int
                      , ptreasure_ :: Maybe Treasure
+                     , pfell_     :: Bool
                      }
               deriving (Eq)
 
@@ -83,6 +84,7 @@ initialPlayer pos = Player { position_  = pos
                            , pbullets_  = maxBullets
                            , pgrenades_ = maxGrenades
                            , ptreasure_ = Nothing
+                           , pfell_     = False
                            }
 
 type PlayerId = Int

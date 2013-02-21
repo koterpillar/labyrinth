@@ -58,6 +58,6 @@ interesting_wounded = applyState interesting_labyrinth $ do
     updS (cell (Pos 5 2) ~> cbullets) 1
     updS (cell (Pos 5 2) ~> cgrenades) 1
 
-test_show_labyrinth = do
-    assertShowEquals empty_expected empty_labyrinth
-    assertShowEquals interesting_expected interesting_wounded
+test_show_empty = assertShowEquals empty_expected empty_labyrinth
+
+test_show_wounded = assertShowEquals interesting_expected interesting_wounded

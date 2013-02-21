@@ -51,6 +51,9 @@ instance Show Player where
         when (h /= Healthy) $ do
             tell ", "
             tell $ show h
+        f <- askS pfell
+        when f $ do
+            tell ", fallen"
 
 showH :: Wall -> String
 showH NoWall   = "  "

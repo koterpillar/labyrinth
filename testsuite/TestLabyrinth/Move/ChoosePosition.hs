@@ -36,4 +36,24 @@ test_outside = do
         (ChoosePosition $ Pos (-1) (-1))
         InvalidMove
         $ do
-            (return ())
+            return ()
+
+test_not_chosen = do
+    assertMoveUpdates'
+        l0
+        (Move [])
+        InvalidMove
+        $ do
+            return ()
+    assertMoveUpdates'
+        l0
+        (Move [goTowards R])
+        InvalidMove
+        $ do
+            return ()
+    assertMoveUpdates'
+        l0
+        (Move [Grenade R])
+        InvalidMove
+        $ do
+            return ()

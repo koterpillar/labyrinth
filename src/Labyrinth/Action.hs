@@ -19,14 +19,18 @@ performMove pi move = do
 
 performMove' :: Move -> State Labyrinth MoveResult
 performMove' (Move actions) = do
-    pi <- getS currentPlayer
-    if length (filter isMovement actions) > 1
+    posChosen <- getS positionsChosen
+    if not posChosen
         then return InvalidMove
         else do
-            updS (player pi ~> pfell) False
-            actionRes <- performActions actions
-            advancePlayer
-            return $ MoveRes actionRes
+            pi <- getS currentPlayer
+            if length (filter isMovement actions) > 1
+                then return InvalidMove
+                else do
+                    updS (player pi ~> pfell) False
+                    actionRes <- performActions actions
+                    advancePlayer
+                    return $ MoveRes actionRes
 
 performMove' (ChoosePosition pos) = do
     pi <- getS currentPlayer

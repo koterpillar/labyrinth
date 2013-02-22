@@ -11,20 +11,46 @@ import Labyrinth.Move
 import Peeker
 
 performMove :: PlayerId -> Move -> State Labyrinth MoveResult
-performMove pi (Move actions) = do
+performMove pi move = do
     current <- getS currentPlayer
     if current /= pi
         then return WrongTurn
-        else if length (filter isMovement actions) > 1
-            then return InvalidMove
-            else do
-                updS (player pi ~> pfell) False
-                actionRes <- performActions actions
-                queue <- alivePlayers
-                pCount <- gets playerCount
-                let next = head $ tail $ dropWhile (current /=) $ cycle queue
-                updS currentPlayer next
-                return $ MoveRes actionRes
+        else performMove' move
+
+performMove' :: Move -> State Labyrinth MoveResult
+performMove' (Move actions) = do
+    pi <- getS currentPlayer
+    if length (filter isMovement actions) > 1
+        then return InvalidMove
+        else do
+            updS (player pi ~> pfell) False
+            actionRes <- performActions actions
+            advancePlayer
+            return $ MoveRes actionRes
+
+performMove' (ChoosePosition pos) = do
+    pi <- getS currentPlayer
+    out <- gets (isOutside pos)
+    if out
+        then return InvalidMove
+        else do
+            updS (player pi ~> position) pos
+            next <- advancePlayer
+            if (next == 0)
+                then do
+                    updS positionsChosen True
+                    return $ ChoosePositionR AllChosenOK
+                else
+                    return $ ChoosePositionR ChosenOK
+
+advancePlayer :: State Labyrinth PlayerId
+advancePlayer = do
+    pi <- getS currentPlayer
+    queue <- alivePlayers
+    pCount <- gets playerCount
+    let next = head $ tail $ dropWhile (pi /=) $ cycle queue
+    updS currentPlayer next
+    return next
 
 isMovement :: Action -> Bool
 isMovement (Go _) = True

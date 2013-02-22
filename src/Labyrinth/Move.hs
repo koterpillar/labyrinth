@@ -18,7 +18,8 @@ goTowards :: Direction -> Action
 goTowards = Go . Towards
 
 data Move = Move [Action]
-            deriving (Eq)
+          | ChoosePosition Position
+          deriving (Eq)
 
 data CellTypeResult = LandR
                     | ArmoryR
@@ -68,7 +69,13 @@ data ActionResult = GoR GoResult
                   | GrenadeR GrenadeResult
                   deriving (Eq)
 
+data ChoosePositionResult = ChosenOK
+                          | AllChosenOK
+                          | ChooseAgain
+                          deriving (Eq)
+
 data MoveResult = MoveRes [ActionResult]
+                | ChoosePositionR ChoosePositionResult
                 | WrongTurn
                 | InvalidMove
                 deriving (Eq)

@@ -43,6 +43,7 @@ test_show_move_result = do
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection
 derive makeArbitrary ''Action
+derive makeArbitrary ''Position
 derive makeArbitrary ''Move
 derive makeArbitrary ''CellTypeResult
 derive makeArbitrary ''TreasureResult
@@ -50,15 +51,29 @@ derive makeArbitrary ''GoResult
 derive makeArbitrary ''ShootResult
 derive makeArbitrary ''GrenadeResult
 derive makeArbitrary ''ActionResult
+derive makeArbitrary ''ChoosePositionResult
 derive makeArbitrary ''MoveResult
 
-prop_show_parse_move :: Move -> Bool
-prop_show_parse_move m = parsed == m
+isSecret :: Move -> Bool
+isSecret (ChoosePosition _) = True
+isSecret _                  = False
+
+prop_show_move :: Move -> Bool
+prop_show_move = (0 <) . length . show
+
+prop_show_parse_move :: Move -> Property
+prop_show_parse_move m = not (isSecret m) ==> parsed == m
     where
         parseResult = parseMove $ show m
         parsed = case parseResult of
             Right x -> x
             Left y -> error y
+
+prop_show_choose_position :: Move -> Move -> Property
+prop_show_choose_position m1 m2 =
+    isChoose m1 && isChoose m2 ==> show m1 == show m2
+    where isChoose (ChoosePosition _) = True
+          isChoose _                  = False
 
 prop_show_move_result :: MoveResult -> Bool
 prop_show_move_result = (0 <) . length . show

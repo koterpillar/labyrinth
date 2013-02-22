@@ -136,6 +136,7 @@ instance Show Action where
 instance Show Move where
     show (Move []) = "skip"
     show (Move acts) = intercalate ", " $ map show acts
+    show (ChoosePosition _) = "[choose position]"
 
 instance Show CellTypeResult where
     show LandR = "land"
@@ -190,8 +191,14 @@ instance Show ActionResult where
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
 
+instance Show ChoosePositionResult where
+    show ChosenOK    = "position chosen"
+    show AllChosenOK = "all positions chosen, game started"
+    show ChooseAgain = "positions chosen invalid, choose again"
+
 instance Show MoveResult where
-    show (MoveRes []) = "ok"
-    show (MoveRes rs) = intercalate ", " $ map show rs
-    show WrongTurn = "wrong turn"
-    show InvalidMove = "invalid move"
+    show (MoveRes [])          = "ok"
+    show (MoveRes rs)          = intercalate ", " $ map show rs
+    show WrongTurn             = "wrong turn"
+    show InvalidMove           = "invalid move"
+    show (ChoosePositionR cpr) = show cpr

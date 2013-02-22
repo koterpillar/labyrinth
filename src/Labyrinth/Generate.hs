@@ -8,8 +8,7 @@ import Control.Monad.Random
 import Control.Monad.State
 
 generateLabyrinth :: (RandomGen g) => Int -> Int -> Int -> g -> (Labyrinth, g)
-generateLabyrinth w h p = runRand (execStateT generate initial)
-    where initial = emptyLabyrinth w h $ take p $ repeat $ Pos 0 0
+generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
 
 isLand :: Cell -> Bool
 isLand c = isLand' $ getP ctype c

@@ -90,11 +90,12 @@ initialPlayer pos = Player { position_  = pos
 type PlayerId = Int
 
 -- wallsV and wallsH are considered to be to the left and top of the cells
-data Labyrinth = Labyrinth { cells_         :: [[Cell]]
-                           , wallsH_        :: [[Wall]]
-                           , wallsV_        :: [[Wall]]
-                           , players_       :: [Player]
-                           , currentPlayer_ :: PlayerId
+data Labyrinth = Labyrinth { cells_           :: [[Cell]]
+                           , wallsH_          :: [[Wall]]
+                           , wallsV_          :: [[Wall]]
+                           , players_         :: [Player]
+                           , currentPlayer_   :: PlayerId
+                           , positionsChosen_ :: Bool
                            }
                  deriving (Eq)
 
@@ -130,13 +131,14 @@ outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]
 playerCount :: Labyrinth -> Int
 playerCount = length . players_
 
-emptyLabyrinth :: Int -> Int -> [Position] -> Labyrinth
-emptyLabyrinth w h positions =
-    let initialLab = Labyrinth { cells_         = replicate w $ replicate h $ emptyCell Land
-                               , wallsH_        = replicate w $ replicate (h + 1) $ NoWall
-                               , wallsV_        = replicate (w + 1) $ replicate h $ NoWall
-                               , players_       = map initialPlayer positions
-                               , currentPlayer_ = 0
+emptyLabyrinth :: Int -> Int -> Int -> Labyrinth
+emptyLabyrinth w h playerCount =
+    let initialLab = Labyrinth { cells_           = replicate w $ replicate h $ emptyCell Land
+                               , wallsH_          = replicate w $ replicate (h + 1) $ NoWall
+                               , wallsV_          = replicate (w + 1) $ replicate h $ NoWall
+                               , players_         = replicate playerCount $ initialPlayer $ Pos 0 0
+                               , currentPlayer_   = 0
+                               , positionsChosen_ = False
                                }
     in (flip execState) initialLab $ do
         forM_ [0..w - 1] $ \x -> updS (wall (Pos x 0) U) HardWall

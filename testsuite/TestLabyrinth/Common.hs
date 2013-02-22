@@ -17,7 +17,10 @@ assertShowEquals message move = assertEqual message $ show move
 w = 6
 h = 5
 
-empty_labyrinth = emptyLabyrinth w h [Pos 0 0, Pos 2 2]
+empty_labyrinth = applyState (emptyLabyrinth w h 2) $ do
+    updS (player 0 ~> position) $ Pos 0 0
+    updS (player 1 ~> position) $ Pos 2 2
+    updS positionsChosen True
 
 applyState = flip execState
 

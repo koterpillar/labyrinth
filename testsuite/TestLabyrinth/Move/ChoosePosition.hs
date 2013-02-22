@@ -57,3 +57,11 @@ test_not_chosen = do
         InvalidMove
         $ do
             return ()
+
+test_already_chosen = do
+    assertMoveUpdates'
+        empty_labyrinth
+        (ChoosePosition $ Pos 1 1)
+        InvalidMove
+        $ do
+            return ()

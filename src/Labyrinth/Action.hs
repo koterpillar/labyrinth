@@ -33,19 +33,23 @@ performMove' (Move actions) = do
                     return $ MoveRes actionRes
 
 performMove' (ChoosePosition pos) = do
-    pi <- getS currentPlayer
-    out <- gets (isOutside pos)
-    if out
+    posChosen <- getS positionsChosen
+    if posChosen
         then return InvalidMove
         else do
-            updS (player pi ~> position) pos
-            next <- advancePlayer
-            if (next == 0)
-                then do
-                    updS positionsChosen True
-                    return $ ChoosePositionR AllChosenOK
-                else
-                    return $ ChoosePositionR ChosenOK
+            pi <- getS currentPlayer
+            out <- gets (isOutside pos)
+            if out
+                then return InvalidMove
+                else do
+                    updS (player pi ~> position) pos
+                    next <- advancePlayer
+                    if (next == 0)
+                        then do
+                            updS positionsChosen True
+                            return $ ChoosePositionR AllChosenOK
+                        else
+                            return $ ChoosePositionR ChosenOK
 
 advancePlayer :: State Labyrinth PlayerId
 advancePlayer = do

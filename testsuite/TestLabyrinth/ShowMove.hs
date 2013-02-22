@@ -75,5 +75,10 @@ prop_show_choose_position m1 m2 =
     where isChoose (ChoosePosition _) = True
           isChoose _                  = False
 
+test_parse_choose_position = do
+    assertEqual
+        (Right $ ChoosePosition $ Pos 2 3)
+        $ parseMove "choose 2 3"
+
 prop_show_move_result :: MoveResult -> Bool
 prop_show_move_result = (0 <) . length . show

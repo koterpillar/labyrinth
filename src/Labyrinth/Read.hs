@@ -3,10 +3,14 @@ module Labyrinth.Read (parseMove) where
 import Labyrinth.Map
 import Labyrinth.Move
 
+import Control.Monad
+
 import Peeker
 
 import Text.Parsec
+import Text.Parsec.Language
 import Text.Parsec.String (Parser)
+import qualified Text.Parsec.Token as T
 
 parseMove :: String -> Either String Move
 parseMove str = case parse moveParser "" str of
@@ -21,15 +25,35 @@ stringResult s v = do
 moveParser :: Parser Move
 moveParser = do
     spaces
-    emptyMove <|> do
-        actions <- sepBy1 action (char ',')
-        eof
-        return $ Move actions
+    emptyMove <|> choosePosition <|> actionsParser
 
 emptyMove :: Parser Move
 emptyMove = do
     try $ string "skip"
     return $ Move []
+
+choosePosition :: Parser Move
+choosePosition = do
+    try $ string "choose"
+    spaces
+    pos <- positionParser
+    return $ ChoosePosition $ pos
+
+positionParser :: Parser Position
+positionParser = do
+    x <- integer
+    spaces
+    y <- integer
+    return $ Pos x y
+
+integer :: Parser Int
+integer = (liftM fromInteger) $ T.integer (T.makeTokenParser emptyDef)
+
+actionsParser :: Parser Move
+actionsParser = do
+    actions <- sepBy1 action (char ',')
+    eof
+    return $ Move actions
 
 action :: Parser Action
 action = do

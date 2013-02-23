@@ -28,17 +28,17 @@ test_show_move_result = do
     assertShowEquals "ok" $
         MoveRes []
     assertShowEquals "hit a wall" $
-        MoveRes [GoR $ HitWall]
+        MoveRes [GoR $ HitWall noEvents]
     assertShowEquals "went onto land" $
-        MoveRes [GoR $ Went $ CellResult LandR 0 0 0 Nothing]
+        MoveRes [GoR $ Went LandR noEvents]
     assertShowEquals "went onto land, found a bullet" $
-        MoveRes [GoR $ Went $ CellResult LandR 1 0 0 Nothing]
+        MoveRes [GoR $ Went LandR $ CellEvents 1 0 0 Nothing]
     assertShowEquals "went onto land, found 2 bullets" $
-        MoveRes [GoR $ Went $ CellResult LandR 2 0 0 Nothing]
+        MoveRes [GoR $ Went LandR $ CellEvents 2 0 0 Nothing]
     assertShowEquals "went onto land, found 2 bullets, 3 grenades and a treasure" $
-        MoveRes [GoR $ Went $ CellResult LandR 2 3 1 Nothing]
+        MoveRes [GoR $ Went LandR $ CellEvents 2 3 1 Nothing]
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
-        MoveRes [GoR $ Went $ CellResult RiverR 0 2 0 (Just RiverR)]
+        MoveRes [GoR $ Went RiverR $ CellEvents 0 2 0 (Just RiverR)]
 
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection
@@ -46,7 +46,7 @@ derive makeArbitrary ''Action
 derive makeArbitrary ''Position
 derive makeArbitrary ''Move
 derive makeArbitrary ''CellTypeResult
-derive makeArbitrary ''CellResult
+derive makeArbitrary ''CellEvents
 derive makeArbitrary ''TreasureResult
 derive makeArbitrary ''GoResult
 derive makeArbitrary ''ShootResult

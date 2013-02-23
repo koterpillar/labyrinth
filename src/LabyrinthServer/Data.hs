@@ -33,7 +33,7 @@ deriveSafeCopy 0 'base ''Move
 
 deriveSafeCopy 0 'base ''CellTypeResult
 deriveSafeCopy 0 'base ''TreasureResult
-deriveSafeCopy 0 'base ''CellResult
+deriveSafeCopy 0 'base ''CellEvents
 deriveSafeCopy 0 'base ''GoResult
 deriveSafeCopy 0 'base ''GrenadeResult
 deriveSafeCopy 0 'base ''ShootResult

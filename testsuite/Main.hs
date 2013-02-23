@@ -6,6 +6,7 @@ import {-@ HTF_TESTS @-} TestLabyrinth
 import {-@ HTF_TESTS @-} TestLabyrinth.Generate
 import {-@ HTF_TESTS @-} TestLabyrinth.Move.ChoosePosition
 import {-@ HTF_TESTS @-} TestLabyrinth.Move.Grenade
+import {-@ HTF_TESTS @-} TestLabyrinth.Move.Movement
 import {-@ HTF_TESTS @-} TestLabyrinth.Move.Shoot
 import {-@ HTF_TESTS @-} TestLabyrinth.ShowLabyrinth
 import {-@ HTF_TESTS @-} TestLabyrinth.ShowMove

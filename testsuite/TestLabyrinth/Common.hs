@@ -46,8 +46,10 @@ interesting_labyrinth = applyState empty_labyrinth $ do
     updS (cell (Pos 2 2) ~> ctype) $ River L
     updS (cell (Pos 3 2) ~> ctype) $ Pit 0
     updS (cell (Pos 2 4) ~> ctype) Hospital
-    updS (wall (Pos 3 0) U) $ Wall
-    updS (wall (Pos 0 3) L) $ NoWall
-    updS (wall (Pos 4 4) D) $ NoWall
+    updS (wall (Pos 3 0) U) Wall
+    updS (wall (Pos 2 2) R) Wall
+    updS (wall (Pos 3 2) R) Wall
+    updS (wall (Pos 0 3) L) NoWall
+    updS (wall (Pos 4 4) D) NoWall
     updS (cell (Pos 5 3) ~> ctreasures) $ [TrueTreasure]
     updS (cell (Pos 1 3) ~> ctreasures) $ [FakeTreasure]

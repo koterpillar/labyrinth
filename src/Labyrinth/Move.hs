@@ -42,28 +42,28 @@ data TreasureResult = TurnedToAshesR
                     | TrueTreasureR
                     deriving (Eq)
 
-data CellResult = CellResult { crtype_         :: CellTypeResult
-                             , foundBullets_   :: Int
+data CellEvents = CellEvents { foundBullets_   :: Int
                              , foundGrenades_  :: Int
                              , foundTreasures_ :: Int
                              , transportedTo_  :: Maybe CellTypeResult
                              } deriving (Eq)
 
-derivePeek ''CellResult
+derivePeek ''CellEvents
 
-cellResult :: CellTypeResult -> CellResult
-cellResult ct = CellResult { crtype_         = ct
-                           , foundBullets_   = 0
-                           , foundGrenades_  = 0
-                           , foundTreasures_ = 0
-                           , transportedTo_  = Nothing
-                           }
+noEvents :: CellEvents
+noEvents = CellEvents { foundBullets_   = 0
+                      , foundGrenades_  = 0
+                      , foundTreasures_ = 0
+                      , transportedTo_  = Nothing
+                      }
 
-data GoResult = Went { cellr_ :: CellResult
+data GoResult = Went { onto_    :: CellTypeResult
+                     , wevents_ :: CellEvents
                      }
               | WentOutside { treasureResult_ :: Maybe TreasureResult
                             }
-              | HitWall {}
+              | HitWall { hitr_ :: CellEvents
+                        }
               deriving (Eq)
 
 derivePeek ''GoResult
@@ -88,9 +88,13 @@ data ChoosePositionResult = ChosenOK
                           | ChooseAgain
                           deriving (Eq)
 
-data ReorderCellResult = ReorderOK CellResult
-                       | ReorderForbidden
+data ReorderCellResult = ReorderOK { ronto_   :: CellTypeResult
+                                   , revents_ :: CellEvents
+                                   }
+                       | ReorderForbidden {}
                        deriving (Eq)
+
+derivePeek ''ReorderCellResult
 
 data MoveResult = MoveRes [ActionResult]
                 | ChoosePositionR ChoosePositionResult

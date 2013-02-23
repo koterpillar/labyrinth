@@ -147,9 +147,8 @@ instance Show CellTypeResult where
     show RiverR = "river"
     show RiverDeltaR = "delta"
 
-instance Show CellResult where
+instance Show CellEvents where
     show r = execWriter $ do
-            tell $ show $ getP crtype r
             let transported = getP transportedTo r
             when (isJust transported) $ do
                 tell ", was transported to "
@@ -175,8 +174,8 @@ instance Show CellResult where
                           where n = length xs
 
 instance Show ActionResult where
-    show (GoR HitWall) = "hit a wall"
-    show (GoR (Went cr)) = "went onto " ++ show cr
+    show (GoR (HitWall cr)) = "hit a wall" ++ show cr
+    show (GoR (Went ct cr)) = "went onto " ++ show ct ++ show cr
     show (GoR went@WentOutside{}) = execWriter $ do
         tell "went outside"
         let tr = getP treasureResult went
@@ -200,8 +199,8 @@ instance Show ChoosePositionResult where
     show ChooseAgain = "positions chosen invalid, choose again"
 
 instance Show ReorderCellResult where
-    show (ReorderOK r)    = "cell re-ordered, went onto " ++ show r
-    show ReorderForbidden = "cannot re-order cell"
+    show (ReorderOK ct cr) = "cell re-ordered, went onto " ++ show ct ++ show cr
+    show ReorderForbidden  = "cannot re-order cell"
 
 instance Show MoveResult where
     show (MoveRes [])          = "ok"

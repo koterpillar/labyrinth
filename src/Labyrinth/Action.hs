@@ -63,8 +63,8 @@ performMove' (ReorderCell pos) = onlyWhenChosen $ do
                 else do
                     updS (player pi ~> position) pos
                     updS (player pi ~> pfell) False
-                    cr <- cellActions
-                    return $ ReorderCellR $ ReorderOK $ cr
+                    (ct, cr) <- cellActions True
+                    return $ ReorderCellR $ ReorderOK ct cr
 
 advancePlayer :: State Labyrinth PlayerId
 advancePlayer = do
@@ -141,8 +141,8 @@ pickGrenades = do
             (cell pos ~> cgrenades)
             (player i ~> pgrenades)
 
-cellActions :: State Labyrinth CellResult
-cellActions = do
+cellActions :: Bool -> State Labyrinth (CellTypeResult, CellEvents)
+cellActions moved = do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     ct <- getS (cell pos ~> ctype)
@@ -155,7 +155,7 @@ cellActions = do
         Hospital -> do
             updS (player pi ~> phealth) Healthy
             return Nothing
-        Pit i -> do
+        Pit i -> if not moved then return Nothing else do
             npits <- gets pitCount
             let i' = (i + 1) `mod` npits
             pos' <- gets (pit i')
@@ -183,7 +183,7 @@ cellActions = do
         let ptr' = Just $ head ctr
         updS (cell npos ~> ctreasures) ctr'
         updS (player pi ~> ptreasure) ptr'
-    return $ CellResult (ctResult ct) cb cg (length ctr) nctr
+    return $ (ctResult ct, CellEvents cb cg (length ctr) nctr)
 
 performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
@@ -208,10 +208,11 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
                             returnStop $ GoR $ WentOutside $ Just TrueTreasureR
                             -- TODO: mark the game as ended?
                 else do
-                    cr <- cellActions
-                    returnCont $ GoR $ Went cr
-        else
-            returnCont $ GoR HitWall
+                    (ct, cr) <- cellActions True
+                    returnCont $ GoR $ Went ct cr
+        else do
+            (_, cr) <- cellActions False
+            returnCont $ GoR $ HitWall cr
 
 performGrenade :: Direction -> State Labyrinth ActionResult
 performGrenade dir = do

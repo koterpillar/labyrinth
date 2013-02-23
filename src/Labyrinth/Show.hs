@@ -193,10 +193,14 @@ instance Show ActionResult where
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
 
+instance Show StartResult where
+    show (StartR pi ct cr) = "player " ++ show pi
+                          ++ " started at " ++ show ct ++ show cr
+
 instance Show ChoosePositionResult where
-    show ChosenOK    = "position chosen"
-    show AllChosenOK = "all positions chosen, game started"
-    show ChooseAgain = "positions chosen invalid, choose again"
+    show ChosenOK          = "position chosen"
+    show (AllChosenOK pos) = "game started; " ++ (intercalate "; " $ map show pos)
+    show ChooseAgain       = "positions chosen invalid, choose again"
 
 instance Show ReorderCellResult where
     show (ReorderOK ct cr) = "cell re-ordered, went onto " ++ show ct ++ show cr

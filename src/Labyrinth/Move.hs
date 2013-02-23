@@ -83,8 +83,15 @@ data ActionResult = GoR GoResult
                   | GrenadeR GrenadeResult
                   deriving (Eq)
 
+data StartResult = StartR { splayer_ :: PlayerId
+                          , scell_   :: CellTypeResult
+                          , sevents_ :: CellEvents
+                          } deriving (Eq)
+
+derivePeek ''StartResult
+
 data ChoosePositionResult = ChosenOK
-                          | AllChosenOK
+                          | AllChosenOK [StartResult]
                           | ChooseAgain
                           deriving (Eq)
 

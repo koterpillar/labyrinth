@@ -47,7 +47,12 @@ performMove' (ChoosePosition pos) = do
             if (next == 0)
                 then do
                     updS positionsChosen True
-                    return $ ChoosePositionR AllChosenOK
+                    players <- alivePlayers
+                    pos <- forM players $ \pi -> do
+                        (ct, cr) <- cellActions True
+                        advancePlayer
+                        return $ StartR pi ct cr
+                    return $ ChoosePositionR $ AllChosenOK pos
                 else
                     return $ ChoosePositionR ChosenOK
 

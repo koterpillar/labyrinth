@@ -12,7 +12,7 @@ import Test.Framework
 import TestLabyrinth.Common
 import TestLabyrinth.Move.Common
 
-l0 = applyState empty_labyrinth $ do
+l0 = applyState interesting_labyrinth $ do
     updS positionsChosen False
 
 test_all_ok = do
@@ -20,15 +20,19 @@ test_all_ok = do
     let l1_expected = applyState l1 $ do
         updS (player 0 ~> position) $ Pos 2 2
         updS currentPlayer 1
-    assertEqual r1 $ ChoosePositionR ChosenOK
-    assertEqual l1 l1_expected
+    assertEqual (ChoosePositionR ChosenOK) r1
+    assertEqual l1_expected l1
     let (r2, l2) = runState (performMove 1 $ ChoosePosition $ Pos 3 3) l1
     let l2_expected = applyState l1 $ do
+        updS (player 0 ~> position) $ Pos 1 2
         updS (player 1 ~> position) $ Pos 3 3
         updS currentPlayer 0
         updS positionsChosen True
-    assertEqual r2 $ ChoosePositionR AllChosenOK
-    assertEqual l2 l2_expected
+    let player_results = [ StartR 0 RiverR $ CellEvents 0 0 0 $ Just RiverDeltaR
+                         , StartR 1 LandR noEvents
+                         ]
+    assertEqual (ChoosePositionR $ AllChosenOK player_results) r2
+    assertEqual l2_expected l2
 
 test_outside = do
     assertMoveUpdates'

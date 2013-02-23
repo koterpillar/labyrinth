@@ -38,6 +38,7 @@ deriveSafeCopy 0 'base ''GoResult
 deriveSafeCopy 0 'base ''GrenadeResult
 deriveSafeCopy 0 'base ''ShootResult
 deriveSafeCopy 0 'base ''ActionResult
+deriveSafeCopy 0 'base ''StartResult
 deriveSafeCopy 0 'base ''ChoosePositionResult
 deriveSafeCopy 0 'base ''ReorderCellResult
 deriveSafeCopy 0 'base ''MoveResult

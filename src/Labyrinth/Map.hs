@@ -111,7 +111,7 @@ isInside :: Position -> Labyrinth -> Bool
 isInside (Pos x y) l = and [ x >= 0
                             , x < w
                             , y >= 0
-                            , y <= h
+                            , y < h
                             ]
     where w = labWidth l
           h = labHeight l

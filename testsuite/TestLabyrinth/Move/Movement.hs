@@ -209,3 +209,12 @@ test_outside = do
             updS currentPlayer 1
             updS (player 0 ~> position) (Pos (-1) 3)
             updS (player 0 ~> ptreasure) Nothing
+    let bottom = applyState interesting_labyrinth $ do
+        updS (player 0 ~> position) $ Pos 4 4
+    assertMoveUpdates'
+        bottom
+        (Move [goTowards D])
+        (MoveRes [GoR $ WentOutside Nothing])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) $ Pos 4 5

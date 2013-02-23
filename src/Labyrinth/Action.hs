@@ -17,45 +17,54 @@ performMove pi move = do
         then return WrongTurn
         else performMove' move
 
-performMove' :: Move -> State Labyrinth MoveResult
-performMove' (Move actions) = do
+onlyWhenChosen :: State Labyrinth MoveResult -> State Labyrinth MoveResult
+onlyWhenChosen act = do
     posChosen <- getS positionsChosen
     if not posChosen
         then return InvalidMove
+        else act
+
+performMove' :: Move -> State Labyrinth MoveResult
+performMove' (Move actions) = onlyWhenChosen $ do
+    pi <- getS currentPlayer
+    if length (filter isMovement actions) > 1
+        then return InvalidMove
         else do
-            pi <- getS currentPlayer
-            if length (filter isMovement actions) > 1
-                then return InvalidMove
-                else do
-                    updS (player pi ~> pfell) False
-                    actionRes <- performActions actions
-                    advancePlayer
-                    return $ MoveRes actionRes
+            updS (player pi ~> pfell) False
+            actionRes <- performActions actions
+            advancePlayer
+            return $ MoveRes actionRes
 
 performMove' (ChoosePosition pos) = do
+    pi <- getS currentPlayer
+    out <- gets (isOutside pos)
+    posChosen <- getS positionsChosen
+    if out || posChosen
+        then return InvalidMove
+        else do
+            updS (player pi ~> position) pos
+            next <- advancePlayer
+            if (next == 0)
+                then do
+                    updS positionsChosen True
+                    return $ ChoosePositionR AllChosenOK
+                else
+                    return $ ChoosePositionR ChosenOK
+
+performMove' (ReorderCell pos) = onlyWhenChosen $ do
     pi <- getS currentPlayer
     out <- gets (isOutside pos)
     if out
         then return InvalidMove
         else do
-            posChosen <- getS positionsChosen
             fell <- getS (player pi ~> pfell)
-            if posChosen && not fell
+            if not fell
                 then return InvalidMove
                 else do
                     updS (player pi ~> position) pos
-                    if not posChosen
-                        then do
-                            next <- advancePlayer
-                            if (next == 0)
-                                then do
-                                    updS positionsChosen True
-                                    return $ ChoosePositionR AllChosenOK
-                                else
-                                    return $ ChoosePositionR ChosenOK
-                        else do
-                            updS (player pi ~> pfell) False
-                            return $ ChoosePositionR ChosenOK
+                    updS (player pi ~> pfell) False
+                    cr <- cellActions
+                    return $ ReorderCellR $ ReorderOK $ cr
 
 advancePlayer :: State Labyrinth PlayerId
 advancePlayer = do
@@ -132,12 +141,12 @@ pickGrenades = do
             (cell pos ~> cgrenades)
             (player i ~> pgrenades)
 
-afterMove :: State Labyrinth (Maybe Position)
-afterMove = do
+cellActions :: State Labyrinth CellResult
+cellActions = do
     pi <- getS currentPlayer
     pos <- getS (player pi ~> position)
     ct <- getS (cell pos ~> ctype)
-    case ct of
+    pos' <- case ct of
         Land -> return Nothing
         Armory -> do
             updS (player pi ~> pbullets) maxBullets
@@ -150,11 +159,31 @@ afterMove = do
             npits <- gets pitCount
             let i' = (i + 1) `mod` npits
             pos' <- gets (pit i')
+            updS (player pi ~> position) pos'
             return $ Just pos'
         River d -> do
             let pos' = advance pos d
+            updS (player pi ~> position) pos'
             return $ Just pos'
         RiverDelta -> return Nothing
+    let npos = fromMaybe pos pos'
+    -- If transported, determine the new cell type
+    nct <- if isJust pos'
+        then (liftM Just) $ getS (cell npos ~> ctype)
+        else return Nothing
+    let nctr = (fmap ctResult) nct
+    -- Pick ammo
+    cb <- pickBullets
+    cg <- pickGrenades
+    -- Pick treasures
+    ctr <- getS (cell npos ~> ctreasures)
+    ptr <- getS (player pi ~> ptreasure)
+    when (ptr == Nothing && length ctr > 0) $ do
+        let ctr' = tail ctr
+        let ptr' = Just $ head ctr
+        updS (cell npos ~> ctreasures) ctr'
+        updS (player pi ~> ptreasure) ptr'
+    return $ CellResult (ctResult ct) cb cg (length ctr) nctr
 
 performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
@@ -179,33 +208,8 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
                             returnStop $ GoR $ WentOutside $ Just TrueTreasureR
                             -- TODO: mark the game as ended?
                 else do
-                    ct <- getS (cell npos ~> ctype)
-                    -- Perform cell-type-specific actions
-                    npos' <- afterMove
-                    let npos'' = fromMaybe npos npos'
-                    updS (player pi ~> position) npos''
-                    -- If transported, determine the new cell type
-                    nct <- if isJust npos' then do
-                            nct' <- getS (cell npos'' ~> ctype)
-                            return $ Just nct'
-                        else
-                            return Nothing
-                    -- Pick ammo
-                    cb <- pickBullets
-                    cg <- pickGrenades
-                    -- Pick treasures
-                    ctr <- getS (cell npos'' ~> ctreasures)
-                    ptr <- getS (player pi ~> ptreasure)
-                    if ptr == Nothing && length ctr > 0
-                        then do
-                            let ctr' = tail ctr
-                            let ptr' = Just $ head ctr
-                            updS (cell npos'' ~> ctreasures) ctr'
-                            updS (player pi ~> ptreasure) ptr'
-                        else
-                            return ()
-                    let nctr = (fmap ctResult) nct
-                    returnCont $ GoR $ Went (ctResult ct) cb cg (length ctr) nctr
+                    cr <- cellActions
+                    returnCont $ GoR $ Went cr
         else
             returnCont $ GoR HitWall
 

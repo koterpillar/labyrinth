@@ -134,9 +134,10 @@ instance Show Action where
     show (Grenade d) = "grenade " ++ (show d)
 
 instance Show Move where
-    show (Move []) = "skip"
-    show (Move acts) = intercalate ", " $ map show acts
+    show (Move [])          = "skip"
+    show (Move acts)        = intercalate ", " $ map show acts
     show (ChoosePosition _) = "[choose position]"
+    show (ReorderCell _)    = "[reorder cell]"
 
 instance Show CellTypeResult where
     show LandR = "land"
@@ -146,18 +147,16 @@ instance Show CellTypeResult where
     show RiverR = "river"
     show RiverDeltaR = "delta"
 
-instance Show ActionResult where
-    show (GoR HitWall) = "hit a wall"
-    show (GoR went@Went{}) = execWriter $ do
-            tell "went onto "
-            tell $ show $ getP onto went
-            let transported = getP transportedTo went
+instance Show CellResult where
+    show r = execWriter $ do
+            tell $ show $ getP crtype r
+            let transported = getP transportedTo r
             when (isJust transported) $ do
                 tell ", was transported to "
                 tell $ show $ fromJust $ transported
-            let b = getP foundBullets went
-            let g = getP foundGrenades went
-            let t = getP foundTreasures went
+            let b = getP foundBullets r
+            let g = getP foundGrenades r
+            let t = getP foundTreasures r
             let found = b > 0 || g > 0 || t > 0
             when found $ do
                 tell ", found "
@@ -174,6 +173,10 @@ instance Show ActionResult where
               commaList xs = intercalate ", " (take (n - 1) xs)
                           ++ " and " ++ xs !! (n - 1)
                           where n = length xs
+
+instance Show ActionResult where
+    show (GoR HitWall) = "hit a wall"
+    show (GoR (Went cr)) = "went onto " ++ show cr
     show (GoR went@WentOutside{}) = execWriter $ do
         tell "went outside"
         let tr = getP treasureResult went
@@ -196,9 +199,14 @@ instance Show ChoosePositionResult where
     show AllChosenOK = "all positions chosen, game started"
     show ChooseAgain = "positions chosen invalid, choose again"
 
+instance Show ReorderCellResult where
+    show (ReorderOK r)    = "cell re-ordered, went onto " ++ show r
+    show ReorderForbidden = "cannot re-order cell"
+
 instance Show MoveResult where
     show (MoveRes [])          = "ok"
     show (MoveRes rs)          = intercalate ", " $ map show rs
     show WrongTurn             = "wrong turn"
     show InvalidMove           = "invalid move"
     show (ChoosePositionR cpr) = show cpr
+    show (ReorderCellR cr)     = show cr

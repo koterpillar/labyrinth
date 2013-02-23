@@ -160,12 +160,12 @@ test_found_bullets = do
             updS (player 0 ~> pbullets) 0
 
 test_reorder_cell = do
-    let duel = applyState (emptyLabyrinth 5 6 3) $ do
+    let duel = applyState (emptyLabyrinth 5 6 2) $ do
         updS (player 0 ~> position) $ Pos 0 0
         updS (player 1 ~> position) $ Pos 2 0
         updS (player 1 ~> pbullets) 0
-        updS (player 2 ~> position) $ Pos 1 1
         updS positionsChosen True
+        updS (cell (Pos 2 1) ~> ctype) Hospital
     let shoot = Move [Shoot R]
     let skip = Move []
     let (r1, l1) = runState (performMove 0 shoot) duel
@@ -176,11 +176,17 @@ test_reorder_cell = do
         updS (player 1 ~> phealth) Wounded
         updS (player 1 ~> pfell) True
     assertEqual l1_expected l1
-    let (r2, l2) = runState (performMove 1 $ ChoosePosition $ Pos 1 0) l1
-    assertEqual (ChoosePositionR ChosenOK) r2
+    let (r2, l2) = runState (performMove 1 $ ReorderCell $ Pos 2 1) l1
+    assertEqual (ReorderCellR $ ReorderOK $ cellResult HospitalR) r2
     let l2_expected = applyState l2 $ do
         updS (player 1 ~> pfell) False
-        updS (player 1 ~> position) $ Pos 1 0
+        updS (player 1 ~> position) $ Pos 2 1
     assertEqual l2_expected l2
-    let (r3, l3) = runState (performMove 1 $ Move [goTowards R]) l2
-    assertEqual (MoveRes [GoR $ Went LandR 0 0 0 Nothing]) r3
+    let (r3, l3) = runState (performMove 1 $ Move [goTowards U]) l2
+    assertEqual (MoveRes [GoR $ Went $ cellResult LandR]) r3
+    let l3_expected = applyState l2 $ do
+        updS currentPlayer 0
+        updS (player 1 ~> position) $ Pos 2 0
+    assertEqual l3_expected l3
+    let (r4, l4) = runState (performMove 0 shoot) duel
+    assertEqual (MoveRes [ShootR Scream]) r4

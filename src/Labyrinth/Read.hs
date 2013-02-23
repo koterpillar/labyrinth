@@ -25,7 +25,7 @@ stringResult s v = do
 moveParser :: Parser Move
 moveParser = do
     spaces
-    emptyMove <|> choosePosition <|> actionsParser
+    emptyMove <|> choosePosition <|> reorderCell <|> actionsParser
 
 emptyMove :: Parser Move
 emptyMove = do
@@ -38,6 +38,13 @@ choosePosition = do
     spaces
     pos <- positionParser
     return $ ChoosePosition $ pos
+
+reorderCell :: Parser Move
+reorderCell = do
+    try $ string "reorder"
+    spaces
+    pos <- positionParser
+    return $ ReorderCell $ pos
 
 positionParser :: Parser Position
 positionParser = do

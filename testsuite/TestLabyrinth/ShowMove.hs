@@ -30,15 +30,15 @@ test_show_move_result = do
     assertShowEquals "hit a wall" $
         MoveRes [GoR $ HitWall]
     assertShowEquals "went onto land" $
-        MoveRes [GoR $ Went LandR 0 0 0 Nothing]
+        MoveRes [GoR $ Went $ CellResult LandR 0 0 0 Nothing]
     assertShowEquals "went onto land, found a bullet" $
-        MoveRes [GoR $ Went LandR 1 0 0 Nothing]
+        MoveRes [GoR $ Went $ CellResult LandR 1 0 0 Nothing]
     assertShowEquals "went onto land, found 2 bullets" $
-        MoveRes [GoR $ Went LandR 2 0 0 Nothing]
+        MoveRes [GoR $ Went $ CellResult LandR 2 0 0 Nothing]
     assertShowEquals "went onto land, found 2 bullets, 3 grenades and a treasure" $
-        MoveRes [GoR $ Went LandR 2 3 1 Nothing]
+        MoveRes [GoR $ Went $ CellResult LandR 2 3 1 Nothing]
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
-        MoveRes [GoR $ Went RiverR 0 2 0 (Just RiverR)]
+        MoveRes [GoR $ Went $ CellResult RiverR 0 2 0 (Just RiverR)]
 
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection
@@ -46,16 +46,19 @@ derive makeArbitrary ''Action
 derive makeArbitrary ''Position
 derive makeArbitrary ''Move
 derive makeArbitrary ''CellTypeResult
+derive makeArbitrary ''CellResult
 derive makeArbitrary ''TreasureResult
 derive makeArbitrary ''GoResult
 derive makeArbitrary ''ShootResult
 derive makeArbitrary ''GrenadeResult
 derive makeArbitrary ''ActionResult
 derive makeArbitrary ''ChoosePositionResult
+derive makeArbitrary ''ReorderCellResult
 derive makeArbitrary ''MoveResult
 
 isSecret :: Move -> Bool
 isSecret (ChoosePosition _) = True
+isSecret (ReorderCell _)    = True
 isSecret _                  = False
 
 prop_show_move :: Move -> Bool
@@ -79,6 +82,11 @@ test_parse_choose_position = do
     assertEqual
         (Right $ ChoosePosition $ Pos 2 3)
         $ parseMove "choose 2 3"
+
+test_parse_reorder_cell = do
+    assertEqual
+        (Right $ ReorderCell $ Pos 1 4)
+        $ parseMove "reorder 1 4"
 
 prop_show_move_result :: MoveResult -> Bool
 prop_show_move_result = (0 <) . length . show

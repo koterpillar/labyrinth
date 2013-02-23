@@ -19,6 +19,7 @@ goTowards = Go . Towards
 
 data Move = Move [Action]
           | ChoosePosition Position
+          | ReorderCell Position
           deriving (Eq)
 
 data CellTypeResult = LandR
@@ -41,11 +42,24 @@ data TreasureResult = TurnedToAshesR
                     | TrueTreasureR
                     deriving (Eq)
 
-data GoResult = Went { onto_           :: CellTypeResult
-                     , foundBullets_   :: Int
-                     , foundGrenades_  :: Int
-                     , foundTreasures_ :: Int
-                     , transportedTo_  :: Maybe CellTypeResult
+data CellResult = CellResult { crtype_         :: CellTypeResult
+                             , foundBullets_   :: Int
+                             , foundGrenades_  :: Int
+                             , foundTreasures_ :: Int
+                             , transportedTo_  :: Maybe CellTypeResult
+                             } deriving (Eq)
+
+derivePeek ''CellResult
+
+cellResult :: CellTypeResult -> CellResult
+cellResult ct = CellResult { crtype_         = ct
+                           , foundBullets_   = 0
+                           , foundGrenades_  = 0
+                           , foundTreasures_ = 0
+                           , transportedTo_  = Nothing
+                           }
+
+data GoResult = Went { cellr_ :: CellResult
                      }
               | WentOutside { treasureResult_ :: Maybe TreasureResult
                             }
@@ -74,8 +88,13 @@ data ChoosePositionResult = ChosenOK
                           | ChooseAgain
                           deriving (Eq)
 
+data ReorderCellResult = ReorderOK CellResult
+                       | ReorderForbidden
+                       deriving (Eq)
+
 data MoveResult = MoveRes [ActionResult]
                 | ChoosePositionR ChoosePositionResult
+                | ReorderCellR ReorderCellResult
                 | WrongTurn
                 | InvalidMove
                 deriving (Eq)

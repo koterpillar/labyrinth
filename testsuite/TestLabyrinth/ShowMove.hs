@@ -5,6 +5,8 @@ module TestLabyrinth.ShowMove (htf_thisModulesTests) where
 
 import Labyrinth
 
+import Control.Monad
+
 import Data.DeriveTH
 
 import Test.Framework
@@ -72,16 +74,22 @@ prop_show_parse_move m = not (isSecret m) ==> parsed == m
             Right x -> x
             Left y -> error y
 
-prop_show_choose_position :: Move -> Move -> Property
-prop_show_choose_position m1 m2 =
-    isChoose m1 && isChoose m2 ==> show m1 == show m2
-    where isChoose (ChoosePosition _) = True
-          isChoose _                  = False
+prop_show_choose_position =
+        forAll arbitraryChoose $ \m1 ->
+        forAll arbitraryChoose $ \m2 ->
+        show m1 == show m2
+    where arbitraryChoose = (liftM ChoosePosition) arbitrary
 
 test_parse_choose_position = do
     assertEqual
         (Right $ ChoosePosition $ Pos 2 3)
         $ parseMove "choose 2 3"
+
+prop_show_reorder_cell =
+        forAll arbitraryReorder $ \m1 ->
+        forAll arbitraryReorder $ \m2 ->
+        show m1 == show m2
+    where arbitraryReorder = (liftM ReorderCell) arbitrary
 
 test_parse_reorder_cell = do
     assertEqual

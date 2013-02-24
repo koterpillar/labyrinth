@@ -10,6 +10,9 @@ import Control.Monad.State
 generateLabyrinth :: (RandomGen g) => Int -> Int -> Int -> g -> (Labyrinth, g)
 generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
 
+allDirections :: [Direction]
+allDirections = [L, R, U, D]
+
 isLand :: Cell -> Bool
 isLand c = isLand' $ getP ctype c
     where isLand' Land = True
@@ -40,6 +43,9 @@ chooseRandomR l = do
             i <- getRandomR (0, length l - 1)
             return $ l !! i
 
+randomDirection :: (RandomGen g) => LabGen g Direction
+randomDirection = chooseRandomR allDirections
+
 allOf :: [a -> Bool] -> a -> Bool
 allOf = flip $ \val -> and . map ($ val)
 
@@ -55,10 +61,11 @@ cellIfM prop = do
 cellIf :: (RandomGen g) => ((Position, Cell) -> Bool) -> LabGen g (Position, Cell)
 cellIf prop = cellIfM $ return . prop
 
-putCell :: (RandomGen g) => CellType -> LabGen g ()
+putCell :: (RandomGen g) => CellType -> LabGen g Position
 putCell ct = do
     (c, _) <- cellIf $ allOf [isLand . snd]
     updS (cell c ~> ctype) ct
+    return c
 
 noTreasures :: Cell -> Bool
 noTreasures = ([] ==) . getP ctreasures
@@ -93,10 +100,47 @@ putPits = do
     let pits = p `div` 4
     forM_ [0..pits - 1] $ putCell . Pit
 
+foldTimes :: (Monad m) => a -> Int -> (a -> m a) -> m a
+foldTimes init times func = foldM func' init [1..times]
+    where func' x y = func x
+
+foldTimes_ :: (Monad m) => a -> Int -> (a -> m a) -> m ()
+foldTimes_ init times func = do
+    foldTimes init times func
+    return ()
+
 putRivers :: (RandomGen g) => LabGen g ()
 putRivers = do
-    -- TODO: rivers
-    return ()
+    a <- area
+    let deltas = a `div` 12
+    dotimes deltas $ do
+        delta <- putCell RiverDelta
+        riverLen <- getRandomR (2, 5)
+        foldTimes_ delta riverLen $ \p -> do
+            landDirs <- filterM (landCellThere p) allDirections
+            if null landDirs
+                then return p
+                else do
+                    d <- chooseRandomR landDirs
+                    let p2 = advance p d
+                    updS (cell p2 ~> ctype) $ River $ reverseDir d
+                    return p2
+
+landCellThere :: (RandomGen g) => Position -> Direction -> LabGen g Bool
+landCellThere p d = do
+    let p2 = advance p d
+    inside <- gets $ isInside p2
+    if inside
+        then do
+            c2 <- getS $ cell p2
+            return $ isLand c2
+        else return False
+
+isRiverSystem :: Cell -> Bool
+isRiverSystem c = isRiverSystem' $ getP ctype c
+    where isRiverSystem' RiverDelta = True
+          isRiverSystem' (River _)  = True
+          isRiverSystem' _          = False
 
 putTreasures :: (RandomGen g) => LabGen g ()
 putTreasures = do
@@ -110,7 +154,7 @@ putWalls = do
         a <- area
         let walls = a `div` 6
         forM_ [1..walls] $ \_ -> do
-            d <- chooseRandomR [L, R, U, D]
+            d <- randomDirection
             (c, _) <- cellIfM $ allOfM $ map ((. fst) . ($ d)) [noWall, notRiver]
             updS (wall c d) Wall
         return ()
@@ -120,11 +164,10 @@ putWalls = do
 
 generate :: (RandomGen g) => LabGen g ()
 generate = do
-    -- Put armories and hospitals in random places
     forM [Armory, Hospital] $ dotimes 2 . putCell
+    putRivers
     putExits
     putPits
-    putRivers
     putTreasures
     putWalls
      -- TODO: reachability

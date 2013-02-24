@@ -1,7 +1,10 @@
 name:                labyrinth
 version:             0.1.0.0
 synopsis:            A complicated turn-based game
--- description:         
+description:         Players take turns in a labyrinth, competing with each
+                     other to pick a treasure and carry it out. They only know
+                     everyone's moves and responses, but do not see the map and
+                     must deduce it themselves.
 homepage:            https://github.com/koterpillar/labyrinth
 license:             MIT
 license-file:        LICENSE
@@ -11,6 +14,10 @@ maintainer:          koterpillar@gmail.com
 category:            Game
 build-type:          Simple
 cabal-version:       >=1.8
+
+source-repository head
+  type:                git
+  location:            git://github.com/koterpillar/labyrinth.git
 
 flag static
   description:         Link the binary statically

@@ -79,6 +79,13 @@ test_to_pit = do
         (MoveRes [GoR $ HitWall noEvents])
         $ do
             updS currentPlayer 1
+    assertMoveUpdates'
+        lab2
+        (Move [Go Next])
+        (MoveRes [GoR $ Went PitR $ CellEvents 0 0 0 (Just PitR)])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) $ Pos 4 0
 
 test_to_river = do
     let lab = applyState interesting_labyrinth $ do
@@ -119,6 +126,15 @@ test_to_river = do
         $ do
             updS (player 0 ~> position) (Pos 1 2)
             updS currentPlayer 1
+    let lab4 = applyState interesting_labyrinth $ do
+        updS (player 0 ~> position) $ Pos 2 1
+    assertMoveUpdates'
+        lab4
+        (Move [Go Next])
+        (MoveRes [GoR $ Went RiverR $ CellEvents 0 0 0 (Just RiverR)])
+        $ do
+            updS currentPlayer 1
+            updS (player 0 ~> position) (Pos 2 2)
 
 test_found_ammo = do
     let empty_ammo = applyState empty_labyrinth $ do

@@ -146,6 +146,11 @@ pickGrenades = do
             (cell pos ~> cgrenades)
             (player i ~> pgrenades)
 
+nextPit :: Int -> State Labyrinth Int
+nextPit i = do
+    npits <- gets pitCount
+    return $ (i + 1) `mod` npits
+
 cellActions :: Bool -> State Labyrinth (CellTypeResult, CellEvents)
 cellActions moved = do
     pi <- getS currentPlayer
@@ -161,8 +166,7 @@ cellActions moved = do
             updS (player pi ~> phealth) Healthy
             return Nothing
         Pit i -> if not moved then return Nothing else do
-            npits <- gets pitCount
-            let i' = (i + 1) `mod` npits
+            i' <- nextPit i
             pos' <- gets (pit i')
             updS (player pi ~> position) pos'
             return $ Just pos'
@@ -218,6 +222,23 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
         else do
             (_, cr) <- cellActions False
             returnCont $ GoR $ HitWall cr
+
+performMovement Next rest = alwaysContinue rest $ liftM GoR $ do
+    pi <- getS currentPlayer
+    pos <- getS (player pi ~> position)
+    out <- gets $ isOutside pos
+    if out
+        then return InvalidMovement
+        else do
+            ct <- getS (cell pos ~> ctype)
+            case ct of
+                Pit _ -> do
+                    (ct, cr) <- cellActions True
+                    return $ Went ct cr
+                River d -> do
+                    (ct, cr) <- cellActions True
+                    return $ Went ct cr
+                _ -> return InvalidMovement
 
 performGrenade :: Direction -> State Labyrinth ActionResult
 performGrenade dir = do

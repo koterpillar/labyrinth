@@ -23,6 +23,8 @@ test_show_move = do
         Move [goTowards D]
     assertShowEquals "go up" $
         Move [goTowards U]
+    assertShowEquals "go next" $
+        Move [Go Next]
     assertShowEquals "shoot left, go up, grenade left" $
         Move [Shoot L, goTowards U, Grenade L]
 

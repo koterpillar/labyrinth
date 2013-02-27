@@ -64,6 +64,7 @@ data GoResult = Went { onto_    :: CellTypeResult
                             }
               | HitWall { hitr_ :: CellEvents
                         }
+              | InvalidMovement
               deriving (Eq)
 
 derivePeek ''GoResult

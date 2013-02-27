@@ -184,6 +184,7 @@ instance Show ActionResult where
             Just TrueTreasureR  -> tell " with a true treasure - victory"
             Nothing             -> return ()
         return ()
+    show (GoR InvalidMovement) = "invalid movement"
 
     show (ShootR ShootOK)   = "ok"
     show (ShootR Scream)    = "a scream is heard"

@@ -8,7 +8,7 @@ import Control.Monad.Reader (ask)
 import Data.Acid (Query, Update, makeAcidic)
 import Data.DeriveTH
 import Data.Derive.Typeable
-import Data.Map
+import qualified Data.Map as M
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable
 
@@ -80,10 +80,10 @@ deriveSafeCopy 0 'base ''Game
 
 derive makeTypeable ''Game
 
-data Games = Games { games_ :: Map GameId Game }
+data Games = Games { games_ :: M.Map GameId Game }
 
 noGames :: Games
-noGames = Games empty
+noGames = Games M.empty
 
 derivePeek ''Games
 
@@ -91,15 +91,15 @@ game :: GameId -> Peek Games Game
 game id = games ~> mapP id
 
 gameList :: Query Games [GameId]
-gameList = askS games >>= return . keys
+gameList = askS games >>= return . M.keys
 
 addGame :: GameId -> Labyrinth -> Update Games Bool
 addGame id lab = stateS games $ do
-    existing <- gets (member id)
+    existing <- gets (M.member id)
     if existing
         then return False
         else do
-            modify $ insert id $ newGame lab
+            modify $ M.insert id $ newGame lab
             return True
 
 performMove :: GameId -> PlayerId -> Move -> Update Games MoveResult

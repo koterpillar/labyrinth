@@ -1,5 +1,6 @@
 $(document).ready(function () {
     var gameId = null;
+    var gameLength = 0;
 
     function refreshGames(noTimer) {
         $.get('/list', function (result) {
@@ -28,16 +29,28 @@ $(document).ready(function () {
         return false;
     });
 
+    $('#back_to_list').click(function () {
+        gameId = null;
+        refreshGame(true);
+        return false;
+    });
+
     function refreshGame(noTimer) {
         if (gameId) {
             $('#game').show();
+            $('#games_container').hide();
             $.get('/' + gameId + '/log', function (result) {
                 result = result.replace(/\n/g, '<br />');
                 result += '<br />';
                 $('#history').html(result);
+                if (result.length > gameLength) {
+                    $(window).scrollTop($('#history').height());
+                }
+                gameLength = result.length;
             });
         } else {
             $('#game').hide();
+            $('#games_container').show();
         }
         if (!noTimer) {
             setTimeout(refreshGame, 1000);

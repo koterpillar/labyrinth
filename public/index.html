@@ -1,21 +1,30 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8" />
         <title>Labyrinth</title>
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+        <link href="css/labyrinth.css" rel="stylesheet" type="text/css" />
         <script src="js/labyrinth.js"></script>
     </head>
     <body>
-        <h1>Games</h1>
-        <div id='games'></div>
-        <form id='add_game'>
-            Players: <input type='number' min='2' id='players' name='players' />
-            <input type='submit' value='Create game' />
-        </form>
-        <div id='game'>
-            <h1>Game log</h1>
-            <div id='history'></div>
-            <form id='make_move'>
+        <div id='games_container' class='container'>
+            <div id='list_header' class='header'>
+                <h1>Games</h1>
+            </div>
+            <div id='games' class='body'></div>
+            <form id='add_game' class='footer'>
+                Players: <input type='number' min='2' name='players' />
+                <input type='submit' value='Create game' />
+            </form>
+        </div>
+        <div id='game' class='container'>
+            <div id='game_header' class='header'>
+                <h1>Game log</h1>
+                <a href='/' id='back_to_list'>Back</a>
+            </div>
+            <div id='history' class='body'></div>
+            <form id='make_move' class='footer'>
                 <input type='number' min='0' id='player' name='player' />
                 <input type='text' id='move' name='move' />
                 <input type='submit' value='Make move' />

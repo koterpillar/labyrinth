@@ -14,7 +14,7 @@ import Data.Typeable
 
 import Peeker
 
-import Labyrinth hiding (performMove, currentPlayer)
+import Labyrinth hiding (performMove, currentTurn)
 import qualified Labyrinth as L
 
 deriveSafeCopy 0 'base ''Direction
@@ -106,8 +106,8 @@ performMove g p m = stateS (game g) $ do
     stateS moves $ logMoveResult $ MoveRecord p m r
     return r
 
-currentPlayer :: GameId -> Query Games Int
-currentPlayer g = askS $ game g ~> labyrinth ~> L.currentPlayer
+currentTurn :: GameId -> Query Games Int
+currentTurn g = askS $ game g ~> labyrinth ~> L.currentTurn
 
 gameLog :: GameId -> Query Games MoveLog
 gameLog g = askS $ game g ~> moves
@@ -122,7 +122,7 @@ derive makeTypeable ''Games
 makeAcidic ''Games [ 'gameList
                    , 'addGame
                    , 'performMove
-                   , 'currentPlayer
+                   , 'currentTurn
                    , 'gameLog
                    , 'showLabyrinth
                    ]

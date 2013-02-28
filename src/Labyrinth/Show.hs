@@ -92,7 +92,7 @@ showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
     where showPlayer p i = (show i) ++ ": " ++ (show p)
 
 showCurrentPlayer :: Labyrinth -> [String]
-showCurrentPlayer l = ["Current player: " ++ show (getP currentPlayer l)]
+showCurrentPlayer l = ["Current player: " ++ show (getP currentTurn l)]
 
 showItems :: Labyrinth -> [String]
 showItems = concat . map showCellItemsOn . allPosCells

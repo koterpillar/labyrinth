@@ -17,7 +17,7 @@ target = Pos 2 2
 duel = applyState empty_labyrinth $ do
     updS (player 0 ~> position) shootPos
 passTurnBullet = do
-    updS currentPlayer 1
+    updS currentTurn 1
     updS (player 0 ~> pbullets) 2
 hit h = do
     updS (player 1 ~> phealth) h
@@ -68,7 +68,7 @@ test_from_hospital = do
         (Move [Shoot R])
         (MoveRes [ShootR Forbidden])
         $ do
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_from_armory = do
     let duel_from_armory = applyState duel $ do
@@ -78,7 +78,7 @@ test_from_armory = do
         (Move [Shoot R])
         (MoveRes [ShootR Forbidden])
         $ do
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_through_hospital = do
     let duel_through_hospital = applyState duel $ do
@@ -171,7 +171,7 @@ test_reorder_cell = do
     let (r1, l1) = runState (performMove 0 shoot) duel
     assertEqual (MoveRes [ShootR Scream]) r1
     let l1_expected = applyState duel $ do
-        updS currentPlayer 1
+        updS currentTurn 1
         updS (player 0 ~> pbullets) 2
         updS (player 1 ~> phealth) Wounded
         updS (player 1 ~> pfell) True
@@ -185,7 +185,7 @@ test_reorder_cell = do
     let (r3, l3) = runState (performMove 1 $ Move [goTowards U]) l2
     assertEqual (MoveRes [GoR $ Went LandR noEvents]) r3
     let l3_expected = applyState l2 $ do
-        updS currentPlayer 0
+        updS currentTurn 0
         updS (player 1 ~> position) $ Pos 2 0
     assertEqual l3_expected l3
     let (r4, l4) = runState (performMove 0 shoot) duel

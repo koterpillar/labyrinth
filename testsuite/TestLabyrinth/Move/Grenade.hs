@@ -20,7 +20,7 @@ test_wall = do
         $ do
             updS (wall (Pos 0 0) R) NoWall
             updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_no_wall = do
     assertMoveUpdates'
@@ -29,7 +29,7 @@ test_no_wall = do
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_hard_wall = do
     assertMoveUpdates'
@@ -38,7 +38,7 @@ test_hard_wall = do
         (MoveRes [GrenadeR GrenadeOK])
         $ do
             updS (player 0 ~> pgrenades) 2
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_no_grenades = do
     assertMoveUpdates'
@@ -46,7 +46,7 @@ test_no_grenades = do
         (Move [Grenade R])
         (MoveRes [GrenadeR NoGrenades])
         $ do
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_found_grenades = do
     let found_grenades = applyState walled_labyrinth $ do
@@ -58,7 +58,7 @@ test_found_grenades = do
         (Move [Grenade L, Grenade R, Grenade U, Grenade D])
         (MoveRes $ replicate 4 $ GrenadeR GrenadeOK)
         $ do
-            updS currentPlayer 1
+            updS currentTurn 1
             updS (cell (Pos 1 1) ~> cgrenades) 0
             updS (player 0 ~> pgrenades) 0
             forM_ [L, R, U, D] $ \d -> updS (wall (Pos 1 1) d) NoWall
@@ -72,5 +72,5 @@ test_from_armory = do
         (Move [Grenade L, Grenade R, Grenade U, Grenade D])
         (MoveRes $ replicate 4 $ GrenadeR GrenadeOK)
         $ do
-            updS currentPlayer 1
+            updS currentTurn 1
             forM_ [L, R, U, D] $ \d -> updS (wall (Pos 1 1) d) NoWall

@@ -34,7 +34,7 @@ test_combined = do
             updS (player 0 ~> position) (Pos 1 0)
             updS (player 0 ~> pgrenades) 2
             updS (wall (Pos 0 0) R) NoWall
-            updS currentPlayer 1
+            updS currentTurn 1
 
 test_invalid = do
     assertMoveUpdates'

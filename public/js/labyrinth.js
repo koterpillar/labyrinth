@@ -39,10 +39,14 @@ $(document).ready(function () {
         if (gameId) {
             $('#game').show();
             $('#games_container').hide();
-            $.get('/' + gameId + '/log', function (result) {
-                result = result.replace(/\n/g, '<br />');
-                result += '<br />';
-                $('#history').html(result);
+            $.getJSON('/' + gameId + '/log', function (result) {
+                var str = "";
+                for (var i = 0; i < result.length; i++) {
+                    var move = result[i];
+                    str += move.player + " > " + move.move + "<br />";
+                    str += move.player + " < " + move.result + "<br />";
+                }
+                $('#history').html(str);
                 if (result.length > gameLength) {
                     $(window).scrollTop($('#history').height());
                 }

@@ -25,7 +25,7 @@ flag static
 
 executable labyrinth-server
   main-is:             LabyrinthServer.hs
-  build-depends:       base ==4.5.*, mtl ==2.1.*, template-haskell ==2.7.*, acid-state ==0.8.*, happstack-server ==7.1.*, derive ==2.5.*, safecopy ==0.8.*, parsec ==3.1.*, containers ==0.4.*, random ==1.0.*, text ==0.11.*, transformers ==0.3.*, MonadRandom ==0.1.*
+  build-depends:       base ==4.5.*, mtl ==2.1.*, template-haskell ==2.7.*, acid-state ==0.8.*, happstack-server ==7.1.*, derive ==2.5.*, safecopy ==0.8.*, parsec ==3.1.*, containers ==0.4.*, random ==1.0.*, text ==0.11.*, transformers ==0.3.*, MonadRandom ==0.1.*, json==0.7.*
   hs-source-dirs:      src
   if (flag(static))
     ghc-options:       -static -optl-pthread -optl-static
@@ -33,5 +33,5 @@ executable labyrinth-server
 Test-Suite tests
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  build-depends:       base ==4.5.*, mtl ==2.1.*, template-haskell ==2.7.*, acid-state ==0.8.*, happstack-server ==7.1.*, derive ==2.5.*, safecopy ==0.8.*, parsec ==3.1.*, containers ==0.4.*, random ==1.0.*, text ==0.11.*, transformers ==0.3.*, MonadRandom ==0.1.*, HTF ==0.10.*, HUnit ==1.2.*
+  build-depends:       base ==4.5.*, mtl ==2.1.*, template-haskell ==2.7.*, acid-state ==0.8.*, happstack-server ==7.1.*, derive ==2.5.*, safecopy ==0.8.*, parsec ==3.1.*, containers ==0.4.*, random ==1.0.*, text ==0.11.*, transformers ==0.3.*, MonadRandom ==0.1.*, json==0.7.*, HTF ==0.10.*, HUnit ==1.2.*
   hs-source-dirs:      src, testsuite

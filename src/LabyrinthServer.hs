@@ -16,6 +16,8 @@ import Happstack.Server hiding (result)
 
 import Peeker
 
+import qualified Text.JSON as J
+
 import System.Environment
 import System.Random
 
@@ -95,11 +97,7 @@ cheat acid gameId = dir "cheat" $ nullDir >> do
 showLog :: AcidState Games -> GameId -> ServerPart Response
 showLog acid gameId = dir "log" $ nullDir >> do
     l <- query' acid $ GameLog gameId
-    let str = intercalate "\n" $ map showMove l
-    ok $ toResponse str
-    where showMove m = "player " ++ show (getP rplayer m)
-                    ++ ": " ++ show (getP rmove m)
-                    ++ "\n" ++ show (getP rresult m)
+    ok $ toResponse $ J.encode $ logJSON l
 
 makeMove :: AcidState Games -> GameId -> ServerPart Response
 makeMove acid gameId = dir "move" $ nullDir >> method POST >> do

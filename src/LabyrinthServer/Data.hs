@@ -14,6 +14,8 @@ import Data.Typeable
 
 import Peeker
 
+import Text.JSON
+
 import Labyrinth hiding (performMove, currentTurn)
 import qualified Labyrinth as L
 
@@ -126,3 +128,24 @@ makeAcidic ''Games [ 'gameList
                    , 'gameLog
                    , 'showLabyrinth
                    ]
+
+logJSON :: MoveLog -> JSValue
+logJSON g = JSArray $ map moveJSON g
+    where moveJSON l = JSObject $ toJSObject [ ("player", jsInt p)
+                                             , ("move", jsShow m)
+                                             , ("result", jsShow r)
+                                             ]
+            where p = getP rplayer l
+                  m = getP rmove l
+                  r = getP rresult l
+
+gameJSON :: Game -> JSValue
+gameJSON g = JSObject $ toJSObject [ ("players", jsInt p)
+                                   ]
+    where p = playerCount $ getP labyrinth g
+
+jsInt :: Int -> JSValue
+jsInt = JSRational False . fromIntegral
+
+jsShow :: (Show a) => a -> JSValue
+jsShow = JSString . toJSString . show

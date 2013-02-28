@@ -23,10 +23,10 @@ import Labyrinth hiding (performMove)
 
 import LabyrinthServer.Data
 
-createLabyrinth :: (MonadIO m) => Int -> m Labyrinth
-createLabyrinth n = do
+createLabyrinth :: (MonadIO m) => Int -> Int -> Int -> m Labyrinth
+createLabyrinth w h n = do
     gen <- liftIO getStdGen
-    let (l, gen') = generateLabyrinth 5 6 n gen
+    let (l, gen') = generateLabyrinth w h n gen
     liftIO $ setStdGen gen'
     return l
 
@@ -72,9 +72,11 @@ createGame :: AcidState Games -> ServerPart Response
 createGame acid = dir "add" $ nullDir >> method POST >> do
     nullDir
     decodeBody bodyPolicy
+    lWidth <- lookRead "width"
+    lHeight <- lookRead "height"
     pCount <- lookRead "players"
     gameId <- newId
-    lab <- createLabyrinth pCount
+    lab <- createLabyrinth lWidth lHeight pCount
     res <- update' acid $ AddGame gameId lab
     if res
         then ok $ toResponse "ok"

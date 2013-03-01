@@ -64,6 +64,7 @@ data GoResult = Went { onto_    :: CellTypeResult
                             }
               | HitWall { hitr_ :: CellEvents
                         }
+              | LostOutside
               | InvalidMovement
               deriving (Eq)
 
@@ -82,6 +83,7 @@ data GrenadeResult = GrenadeOK
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
+                  | Draw
                   deriving (Eq)
 
 data StartResult = StartR { splayer_ :: PlayerId

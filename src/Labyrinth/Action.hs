@@ -35,8 +35,12 @@ performMove' (Move actions) = onlyWhenChosen $ do
         else do
             updS (currentPlayer ~> pfell) False
             actionRes <- performActions actions
-            advancePlayer
-            return $ MoveRes actionRes
+            next <- advancePlayer
+            if isJust next
+                then return $ MoveRes actionRes
+                else do
+                    updS gameEnded True
+                    return $ MoveRes $ actionRes ++ [Draw]
 
 performMove' (ChoosePosition pos) = do
     out <- gets (isOutside pos)
@@ -45,7 +49,7 @@ performMove' (ChoosePosition pos) = do
         then return InvalidMove
         else do
             updS (currentPlayer ~> position) pos
-            next <- advancePlayer
+            (Just next) <- advancePlayer
             if (next == 0)
                 then do
                     updS positionsChosen True
@@ -72,14 +76,20 @@ performMove' (ReorderCell pos) = onlyWhenChosen $ do
                     (ct, cr) <- cellActions True
                     return $ ReorderCellR $ ReorderOK ct cr
 
-advancePlayer :: State Labyrinth PlayerId
+advancePlayer :: State Labyrinth (Maybe PlayerId)
 advancePlayer = do
-    pi <- getS currentTurn
-    queue <- alivePlayers
-    pCount <- gets playerCount
-    let next = head $ tail $ dropWhile (pi /=) $ cycle queue
-    updS currentTurn next
-    return next
+    alive <- alivePlayers
+    if null alive
+        then return Nothing
+        else do
+            pi <- getS currentTurn
+            players <- allPlayers
+            -- build a long enough queue starting with the next player
+            let queue = take (length players) $ tail $ dropWhile (pi /=) $ cycle players
+            -- select the first alive player from the queue
+            next:_ <- filterM playerAlive queue
+            updS currentTurn next
+            return $ Just next
 
 isMovement :: Action -> Bool
 isMovement (Go _) = True
@@ -197,30 +207,38 @@ cellActions moved = do
 performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
     pos <- getS (currentPlayer ~> position)
-    w <- getS (wall pos dir)
-    if w == NoWall
+    let pos' = advance pos dir
+    out <- gets $ isOutside pos
+    out' <- gets $ isOutside pos'
+    if out && out'
         then do
-            let npos = advance pos dir
-            updS (currentPlayer ~> position) npos
-            out <- gets $ isOutside npos
-            if out
-                then do
-                    t <- getS (currentPlayer ~> ptreasure)
-                    case t of
-                        Nothing -> returnCont $ GoR $ WentOutside Nothing
-                        (Just FakeTreasure) -> do
-                            updS (currentPlayer ~> ptreasure) Nothing
-                            returnCont $ GoR $ WentOutside $ Just TurnedToAshesR
-                        (Just TrueTreasure) -> do
-                            updS (currentPlayer ~> ptreasure) Nothing
-                            updS gameEnded True
-                            returnStop $ GoR $ WentOutside $ Just TrueTreasureR
-                else do
-                    (ct, cr) <- cellActions True
-                    returnCont $ GoR $ Went ct cr
+            updS (currentPlayer ~> phealth) Dead
+            updS (currentPlayer ~> pbullets) 0
+            updS (currentPlayer ~> pgrenades) 0
+            returnStop $ GoR LostOutside
         else do
-            (_, cr) <- cellActions False
-            returnCont $ GoR $ HitWall cr
+            w <- getS (wall pos dir)
+            if w == NoWall
+                then do
+                    updS (currentPlayer ~> position) pos'
+                    if out'
+                        then do
+                            t <- getS (currentPlayer ~> ptreasure)
+                            case t of
+                                Nothing -> returnCont $ GoR $ WentOutside Nothing
+                                (Just FakeTreasure) -> do
+                                    updS (currentPlayer ~> ptreasure) Nothing
+                                    returnCont $ GoR $ WentOutside $ Just TurnedToAshesR
+                                (Just TrueTreasure) -> do
+                                    updS (currentPlayer ~> ptreasure) Nothing
+                                    updS gameEnded True
+                                    returnStop $ GoR $ WentOutside $ Just TrueTreasureR
+                        else do
+                            (ct, cr) <- cellActions True
+                            returnCont $ GoR $ Went ct cr
+                else do
+                    (_, cr) <- cellActions False
+                    returnCont $ GoR $ HitWall cr
 
 performMovement Next rest = alwaysContinue rest $ liftM GoR $ do
     pos <- getS (currentPlayer ~> position)
@@ -279,14 +297,20 @@ performShoot dir = do
         else
             return $ ShootR NoBullets
 
+allPlayers :: State Labyrinth [PlayerId]
+allPlayers = do
+    cnt <- gets playerCount
+    return $ [0..cnt - 1]
+
 alivePlayers :: State Labyrinth [PlayerId]
 alivePlayers = do
-    cnt <- gets playerCount
-    filterM playerAlive [0..cnt - 1]
-    where playerAlive :: PlayerId -> State Labyrinth Bool
-          playerAlive i = do
-              ph <- getS (player i ~> phealth)
-              return $ ph /= Dead
+    players <- allPlayers
+    filterM playerAlive players
+
+playerAlive :: PlayerId -> State Labyrinth Bool
+playerAlive i = do
+    ph <- getS (player i ~> phealth)
+    return $ ph /= Dead
 
 playersAliveAt :: Position -> State Labyrinth [PlayerId]
 playersAliveAt pos = do

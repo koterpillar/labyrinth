@@ -193,6 +193,7 @@ instance Show ActionResult where
             Nothing             -> return ()
         return ()
     show (GoR InvalidMovement) = "invalid movement"
+    show (GoR LostOutside) = "lost outside"
 
     show (ShootR ShootOK)   = "ok"
     show (ShootR Scream)    = "a scream is heard"
@@ -201,6 +202,8 @@ instance Show ActionResult where
 
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
+
+    show Draw = "game ended with a draw"
 
 instance Show StartResult where
     show (StartR pi ct cr) = "player " ++ show pi

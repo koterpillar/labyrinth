@@ -235,3 +235,27 @@ test_outside = do
         $ do
             updS currentTurn 1
             updS (player 0 ~> position) $ Pos 4 5
+    let die_outside = applyState interesting_labyrinth $ do
+        updS (player 0 ~> position) $ Pos 4 5
+    assertMoveUpdates'
+        die_outside
+        (Move [goTowards D, Grenade U])
+        (MoveRes [GoR LostOutside])
+        $ do
+            updS currentTurn 1
+            updS (player 0 ~> phealth) Dead
+            updS (player 0 ~> pbullets) 0
+            updS (player 0 ~> pgrenades) 0
+    let draw_outside = applyState die_outside $ do
+        updS (player 1 ~> phealth) Dead
+        updS (player 1 ~> pbullets) 0
+        updS (player 1 ~> pgrenades) 0
+    assertMoveUpdates'
+        draw_outside
+        (Move [goTowards D, Grenade U])
+        (MoveRes [GoR LostOutside, Draw])
+        $ do
+            updS (player 0 ~> phealth) Dead
+            updS (player 0 ~> pbullets) 0
+            updS (player 0 ~> pgrenades) 0
+            updS gameEnded True

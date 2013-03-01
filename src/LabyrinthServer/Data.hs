@@ -139,10 +139,8 @@ logJSON g = JSArray $ map moveJSON g
                   m = getP rmove l
                   r = getP rresult l
 
-gameJSON :: Game -> JSValue
-gameJSON g = JSObject $ toJSObject [ ("players", jsInt p)
-                                   ]
-    where p = playerCount $ getP labyrinth g
+gameListJSON :: [GameId] -> JSValue
+gameListJSON = JSArray . map (JSString . toJSString)
 
 jsInt :: Int -> JSValue
 jsInt = JSRational False . fromIntegral

@@ -3,10 +3,10 @@ $(document).ready(function () {
     var gameLength = 0;
 
     function refreshGames(noTimer) {
-        $.get('/list', function (result) {
+        $.getJSON('/list', function (result) {
             var list = $('#games');
             list.html('');
-            $.each(result.split(", "), function (i, game) {
+            $.each(result, function (i, game) {
                 var link = $('<a href="/">' + game + '</a>');
                 link.click(function () {
                     gameId = game;
@@ -44,11 +44,11 @@ $(document).ready(function () {
                 for (var i = 0; i < result.length; i++) {
                     var move = result[i];
                     str += move.player + " > " + move.move + "<br />";
-                    str += move.player + " < " + move.result + "<br />";
+                    str += move.result + "<br />";
                 }
                 $('#history').html(str);
                 if (result.length > gameLength) {
-                    $(window).scrollTop($('#history').height());
+                    scrollDown();
                 }
                 gameLength = result.length;
             });
@@ -61,6 +61,10 @@ $(document).ready(function () {
         }
     }
 
+    function scrollDown() {
+        $(window).scrollTop($('#history').height());
+    }
+
     function addLine(line) {
         $('#history').append(line + '<br />');
     }
@@ -68,11 +72,13 @@ $(document).ready(function () {
     $('#make_move').submit(function () {
         var form = $(this);
         var data = form.serialize();
-        addLine("player " + $('#player').val() + ": " + $('#move').val());
+        addLine($('#player').val() + " > " + $('#move').val());
+        scrollDown();
         $.post('/' + gameId + '/move', data, function (result) {
             addLine(result);
             $('#move').val('');
             $('#move').focus();
+            scrollDown();
         });
         return false;
     });

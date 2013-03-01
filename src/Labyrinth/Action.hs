@@ -12,10 +12,14 @@ import Peeker
 
 performMove :: PlayerId -> Move -> State Labyrinth MoveResult
 performMove pi move = do
-    current <- getS currentTurn
-    if current /= pi
+    ended <- getS gameEnded
+    if ended
         then return WrongTurn
-        else performMove' move
+        else do
+            current <- getS currentTurn
+            if current /= pi
+                then return WrongTurn
+                else performMove' move
 
 onlyWhenChosen :: State Labyrinth MoveResult -> State Labyrinth MoveResult
 onlyWhenChosen act = do
@@ -209,8 +213,8 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
                             returnCont $ GoR $ WentOutside $ Just TurnedToAshesR
                         (Just TrueTreasure) -> do
                             updS (currentPlayer ~> ptreasure) Nothing
+                            updS gameEnded True
                             returnStop $ GoR $ WentOutside $ Just TrueTreasureR
-                            -- TODO: mark the game as ended?
                 else do
                     (ct, cr) <- cellActions True
                     returnCont $ GoR $ Went ct cr

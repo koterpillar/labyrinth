@@ -24,6 +24,13 @@ test_wrong_turn = do
         (Move [goTowards D])
         WrongTurn
         $ return ()
+    let endgame = applyState empty_labyrinth $ do
+        updS gameEnded True
+    assertMoveUpdates'
+        endgame
+        (Move [goTowards D])
+        WrongTurn
+        $ return ()
 
 test_combined = do
     assertMoveUpdates'

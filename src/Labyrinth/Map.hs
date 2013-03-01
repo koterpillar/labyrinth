@@ -100,8 +100,9 @@ data Labyrinth = Labyrinth { cells_              :: [[Cell]]
                            , wallsH_             :: [[Wall]]
                            , wallsV_             :: [[Wall]]
                            , players_            :: [Player]
-                           , currentTurn_ :: PlayerId
+                           , currentTurn_        :: PlayerId
                            , positionsChosen_    :: Bool
+                           , gameEnded_          :: Bool
                            }
                  deriving (Eq)
 
@@ -143,8 +144,9 @@ emptyLabyrinth w h playerCount =
                                , wallsH_             = replicate w $ replicate (h + 1) $ NoWall
                                , wallsV_             = replicate (w + 1) $ replicate h $ NoWall
                                , players_            = replicate playerCount $ initialPlayer $ Pos 0 0
-                               , currentTurn_ = 0
+                               , currentTurn_        = 0
                                , positionsChosen_    = False
+                               , gameEnded_          = False
                                }
     in (flip execState) initialLab $ do
         forM_ [0..w - 1] $ \x -> updS (wall (Pos x 0) U) HardWall

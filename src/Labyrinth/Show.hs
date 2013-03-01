@@ -109,6 +109,13 @@ showCellItems c = intercalate ", " $ execWriter $ (flip runReaderT) c $ do
     t <- askS ctreasures
     tell $ map show t
 
+showStatus :: Labyrinth -> [String]
+showStatus l = execWriter $ (flip runReaderT) l $ do
+    pc <- askS positionsChosen
+    when (not pc) $ tell ["Positions not chosen"]
+    end <- askS gameEnded
+    when end $ tell ["Game ended"]
+
 instance Show Labyrinth where
     show l = intercalate "\n" $ concat parts
         where parts = map ($ l) [ showMap
@@ -116,6 +123,7 @@ instance Show Labyrinth where
                                 , showPlayers
                                 , showCurrentPlayer
                                 , showItems
+                                , showStatus
                                 ]
 
 instance Show Direction where

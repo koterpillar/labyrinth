@@ -225,6 +225,7 @@ test_outside = do
             updS currentTurn 1
             updS (player 0 ~> position) (Pos (-1) 3)
             updS (player 0 ~> ptreasure) Nothing
+            updS gameEnded True
     let bottom = applyState interesting_labyrinth $ do
         updS (player 0 ~> position) $ Pos 4 4
     assertMoveUpdates'

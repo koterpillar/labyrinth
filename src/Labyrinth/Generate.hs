@@ -21,15 +21,17 @@ isLand c = isLand' $ getP ctype c
 dotimes :: (Monad m) => Int -> m a -> m ()
 dotimes n = sequence_ . replicate n
 
-type LabGen g a = StateT Labyrinth (Rand g) a
+type LabState m a = StateT Labyrinth m a
 
-perimeter :: (RandomGen g) => LabGen g Int
+type LabGen g a = LabState (Rand g) a
+
+perimeter :: (Monad m) => LabState m Int
 perimeter = do
     w <- gets labWidth
     h <- gets labHeight
     return $ (w + h) * 2
 
-area :: (RandomGen g) => LabGen g Int
+area :: (Monad m) => LabState m Int
 area = do
     w <- gets labWidth
     h <- gets labHeight
@@ -58,14 +60,45 @@ cellIfM prop = do
     good <- filterM prop cells
     chooseRandomR good
 
-cellIf :: (RandomGen g) => ((Position, Cell) -> Bool) -> LabGen g (Position, Cell)
+type CellPredicate = ((Position, Cell) -> Bool)
+
+cellIf :: (RandomGen g) => CellPredicate -> LabGen g (Position, Cell)
 cellIf prop = cellIfM $ return . prop
 
 putCell :: (RandomGen g) => CellType -> LabGen g Position
-putCell ct = do
-    (c, _) <- cellIf $ allOf [isLand . snd]
+putCell = putCellIf (const True)
+
+putCellIf :: (RandomGen g) => CellPredicate -> CellType -> LabGen g Position
+putCellIf prop ct = do
+    (c, _) <- cellIf $ allOf [isLand . snd, prop]
     updS (cell c ~> ctype) ct
     return c
+
+neighbors :: (Monad m) => Position -> LabState m [Position]
+neighbors p = filterM (gets . isInside) possibleNeighbors
+    where possibleNeighbors = map (advance p) allDirections
+
+armoriesHospitals :: Labyrinth -> [Position]
+armoriesHospitals = map fst . filter (isArmoryHospital . getP ctype . snd) . allPosCells
+    where isArmoryHospital Armory   = True
+          isArmoryHospital Hospital = True
+          isArmoryHospital _        = False
+
+armoriesHospitalsNeighbors :: (Monad m) => LabState m [Position]
+armoriesHospitalsNeighbors = do
+    ah <- gets armoriesHospitals
+    liftM concat $ mapM neighbors ah
+
+putAH :: (RandomGen g) => CellType -> LabGen g Position
+putAH ct = do
+    ahn <- armoriesHospitalsNeighbors
+    putCellIf (not . (`elem` ahn) . fst) ct
+
+putArmories :: (RandomGen g) => LabGen g ()
+putArmories = dotimes 2 $ putAH Armory
+
+putHospitals :: (RandomGen g) => LabGen g ()
+putHospitals = dotimes 2 $ putAH Hospital
 
 noTreasures :: Cell -> Bool
 noTreasures = ([] ==) . getP ctreasures
@@ -75,7 +108,7 @@ putTreasure t = do
     (c, _) <- cellIf $ allOf $ map (. snd) [isLand, noTreasures]
     updS (cell c ~> ctreasures) [t]
 
-hasWall :: (RandomGen g) => (Position, Direction) -> LabGen g Bool
+hasWall :: (Monad m) => (Position, Direction) -> LabState m Bool
 hasWall (p, d) = do
     wall <- getS (wall p d)
     return $ wall /= NoWall
@@ -126,7 +159,7 @@ putRivers = do
                     updS (cell p2 ~> ctype) $ River $ reverseDir d
                     return p2
 
-landCellThere :: (RandomGen g) => Position -> Direction -> LabGen g Bool
+landCellThere :: (Monad m) => Position -> Direction -> LabState m Bool
 landCellThere p d = do
     let p2 = advance p d
     inside <- gets $ isInside p2
@@ -164,7 +197,8 @@ putWalls = do
 
 generate :: (RandomGen g) => LabGen g ()
 generate = do
-    forM [Armory, Hospital] $ dotimes 2 . putCell
+    putArmories
+    putHospitals
     putRivers
     putExits
     putPits

@@ -2,6 +2,8 @@ module Labyrinth.Generate (generateLabyrinth) where
 
 import Labyrinth.Map
 
+import Data.Tuple
+
 import Peeker
 
 import Control.Monad.Random
@@ -10,20 +12,30 @@ import Control.Monad.State
 generateLabyrinth :: (RandomGen g) => Int -> Int -> Int -> g -> (Labyrinth, g)
 generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
 
-allDirections :: [Direction]
-allDirections = [L, R, U, D]
-
-isLand :: Cell -> Bool
-isLand c = isLand' $ getP ctype c
-    where isLand' Land = True
-          isLand' _    = False
-
-dotimes :: (Monad m) => Int -> m a -> m ()
-dotimes n = sequence_ . replicate n
-
 type LabState m a = StateT Labyrinth m a
 
 type LabGen g a = LabState (Rand g) a
+
+type CellPredicate m = Position -> LabState m Bool
+
+type CellPredicateR g = CellPredicate (Rand g)
+
+allDirections :: [Direction]
+allDirections = [L, R, U, D]
+
+isTypeF :: (Monad m) => (CellType -> Bool) -> CellPredicate m
+isTypeF prop pos = do
+    ct <- getS (cell pos ~> ctype)
+    return $ prop ct
+
+isType :: (Monad m) => CellType -> CellPredicate m
+isType ct = isTypeF (ct ==)
+
+isLand :: (Monad m) => CellPredicate m
+isLand = isType Land
+
+dotimes :: (Monad m) => Int -> m a -> m ()
+dotimes n = sequence_ . replicate n
 
 perimeter :: (Monad m) => LabState m Int
 perimeter = do
@@ -48,51 +60,44 @@ chooseRandomR l = do
 randomDirection :: (RandomGen g) => LabGen g Direction
 randomDirection = chooseRandomR allDirections
 
-allOf :: [a -> Bool] -> a -> Bool
-allOf = flip $ \val -> and . map ($ val)
+allOf :: (Monad m) => [a -> m Bool] -> a -> m Bool
+allOf = flip $ \val -> (liftM and) . sequence . map ($ val)
 
-allOfM :: (Monad m) => [a -> m Bool] -> a -> m Bool
-allOfM = flip $ \val -> (liftM and) . sequence . map ($ val)
-
-cellIfM :: (RandomGen g) => ((Position, Cell) -> LabGen g Bool) -> LabGen g (Position, Cell)
-cellIfM prop = do
-    cells <- gets allPosCells
+cellIf :: (RandomGen g) => CellPredicateR g -> LabGen g Position
+cellIf prop = do
+    cells <- gets allPositions
     good <- filterM prop cells
     chooseRandomR good
 
-type CellPredicate = ((Position, Cell) -> Bool)
-
-cellIf :: (RandomGen g) => CellPredicate -> LabGen g (Position, Cell)
-cellIf prop = cellIfM $ return . prop
-
 putCell :: (RandomGen g) => CellType -> LabGen g Position
-putCell = putCellIf (const True)
+putCell = putCellIf (return . const True)
 
-putCellIf :: (RandomGen g) => CellPredicate -> CellType -> LabGen g Position
+putCellIf :: (RandomGen g) => CellPredicateR g -> CellType -> LabGen g Position
 putCellIf prop ct = do
-    (c, _) <- cellIf $ allOf [isLand . snd, prop]
-    updS (cell c ~> ctype) ct
-    return c
+    pos <- cellIf $ allOf [isLand, prop]
+    updS (cell pos ~> ctype) ct
+    return pos
 
 neighbors :: (Monad m) => Position -> LabState m [Position]
 neighbors p = filterM (gets . isInside) possibleNeighbors
     where possibleNeighbors = map (advance p) allDirections
 
-armoriesHospitals :: Labyrinth -> [Position]
-armoriesHospitals = map fst . filter (isArmoryHospital . getP ctype . snd) . allPosCells
-    where isArmoryHospital Armory   = True
-          isArmoryHospital Hospital = True
-          isArmoryHospital _        = False
+allNeighbors :: (Monad m) => CellPredicate m -> CellPredicate m
+allNeighbors prop pos = do
+    neigh <- neighbors pos
+    let neigh' = pos:neigh
+    res <- mapM prop neigh'
+    return $ and res
 
-armoriesHospitalsNeighbors :: (Monad m) => LabState m [Position]
-armoriesHospitalsNeighbors = do
-    ah <- gets armoriesHospitals
-    liftM concat $ mapM neighbors ah
+isArmoryHospital :: (Monad m) => CellPredicate m
+isArmoryHospital = isTypeF isAH
+    where isAH Armory   = True
+          isAH Hospital = True
+          isAH _        = False
 
 putAH :: (RandomGen g) => CellType -> LabGen g Position
-putAH ct = do
-    ahn <- armoriesHospitalsNeighbors
-    putCellIf (not . (`elem` ahn) . fst) ct
+putAH ct = putCellIf noAHNearby ct
+    where noAHNearby = allNeighbors $ liftM not . isArmoryHospital
 
 putArmories :: (RandomGen g) => LabGen g ()
 putArmories = dotimes 2 $ putAH Armory
@@ -100,24 +105,26 @@ putArmories = dotimes 2 $ putAH Armory
 putHospitals :: (RandomGen g) => LabGen g ()
 putHospitals = dotimes 2 $ putAH Hospital
 
-noTreasures :: Cell -> Bool
-noTreasures = ([] ==) . getP ctreasures
+noTreasures :: (Monad m) => CellPredicate m
+noTreasures pos = do
+    treasures <- getS (cell pos ~> ctreasures)
+    return $ null treasures
 
 putTreasure :: (RandomGen g) => Treasure -> LabGen g ()
 putTreasure t = do
-    (c, _) <- cellIf $ allOf $ map (. snd) [isLand, noTreasures]
-    updS (cell c ~> ctreasures) [t]
+    pos <- cellIf $ allOf [isLand, noTreasures]
+    updS (cell pos ~> ctreasures) [t]
 
-hasWall :: (Monad m) => (Position, Direction) -> LabState m Bool
-hasWall (p, d) = do
+hasWall :: (Monad m) => Direction -> CellPredicate m
+hasWall d p = do
     wall <- getS (wall p d)
     return $ wall /= NoWall
 
 putExit :: (RandomGen g) => Wall -> LabGen g ()
 putExit w = do
     outer <- gets outerPos
-    outer' <- filterM hasWall outer
-    (p, d) <- chooseRandomR outer'
+    outer' <- filterM (uncurry hasWall) $ map swap outer
+    (d, p) <- chooseRandomR outer'
     updS (wall p d) w
 
 putExits :: (RandomGen g) => LabGen g ()
@@ -150,7 +157,7 @@ putRivers = do
         delta <- putCell RiverDelta
         riverLen <- getRandomR (2, 5)
         foldTimes_ delta riverLen $ \p -> do
-            landDirs <- filterM (landCellThere p) allDirections
+            landDirs <- filterM ((flip landCellThere) p) allDirections
             if null landDirs
                 then return p
                 else do
@@ -159,21 +166,13 @@ putRivers = do
                     updS (cell p2 ~> ctype) $ River $ opposite d
                     return p2
 
-landCellThere :: (Monad m) => Position -> Direction -> LabState m Bool
-landCellThere p d = do
+landCellThere :: (Monad m) => Direction -> CellPredicate m
+landCellThere d p = do
     let p2 = advance p d
     inside <- gets $ isInside p2
     if inside
-        then do
-            c2 <- getS $ cell p2
-            return $ isLand c2
+        then isLand p2
         else return False
-
-isRiverSystem :: Cell -> Bool
-isRiverSystem c = isRiverSystem' $ getP ctype c
-    where isRiverSystem' RiverDelta = True
-          isRiverSystem' (River _)  = True
-          isRiverSystem' _          = False
 
 putTreasures :: (RandomGen g) => LabGen g ()
 putTreasures = do
@@ -188,8 +187,8 @@ putWalls = do
         let walls = a `div` 6
         forM_ [1..walls] $ \_ -> do
             d <- randomDirection
-            (c, _) <- cellIfM $ allOfM $ map ((. fst) . ($ d)) [noWall, notRiver]
-            updS (wall c d) Wall
+            pos <- cellIf $ allOf $ map ($ d) [noWall, notRiver]
+            updS (wall pos d) Wall
         return ()
     where
         noWall dir pos = liftM (== NoWall) $ getS $ wall pos dir

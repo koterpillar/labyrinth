@@ -12,11 +12,11 @@ import Peeker
 data Direction = L | R | U | D
                  deriving (Eq)
 
-reverseDir :: Direction -> Direction
-reverseDir L = R
-reverseDir R = L
-reverseDir U = D
-reverseDir D = U
+opposite :: Direction -> Direction
+opposite L = R
+opposite R = L
+opposite U = D
+opposite D = U
 
 data CellType = Land
               | Armory

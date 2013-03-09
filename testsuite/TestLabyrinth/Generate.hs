@@ -62,3 +62,11 @@ prop_treasures_on_land = and . map isLand . filter hasTreasures . allCells
 prop_enough_exits :: Labyrinth -> Bool
 prop_enough_exits l = (2 <=) $ length $ filter isExit $ outerPos l
     where isExit (p, d) = getP (wall p d) l /= HardWall
+
+prop_no_walls_in_rivers :: Labyrinth -> Bool
+prop_no_walls_in_rivers l = and $ map noWall $ filter isRiver $ allPosCells l
+    where isRiver (_, c) = isRiver' $ getP ctype c
+          isRiver' (River _) = True
+          isRiver' _         = False
+          noWall (p, c) = getP (wall p d) l == NoWall
+              where d = getP (ctype ~> riverDirection) c

@@ -156,7 +156,7 @@ putRivers = do
                 else do
                     d <- chooseRandomR landDirs
                     let p2 = advance p d
-                    updS (cell p2 ~> ctype) $ River $ reverseDir d
+                    updS (cell p2 ~> ctype) $ River $ opposite d
                     return p2
 
 landCellThere :: (Monad m) => Position -> Direction -> LabState m Bool
@@ -193,16 +193,28 @@ putWalls = do
         return ()
     where
         noWall dir pos = liftM (== NoWall) $ getS $ wall pos dir
-        notRiver dir pos = liftM (/= (River dir)) $ getS $ (cell pos ~> ctype)
+        notRiver dir pos = do
+            ct1 <- getS $ cell pos ~> ctype
+            if ct1 == River dir
+                then return False
+                else do
+                    let pos2 = advance pos dir
+                    let dir2 = opposite dir
+                    inside <- gets $ isInside pos2
+                    if inside
+                        then do
+                            ct2 <- getS $ cell pos2 ~> ctype
+                            return $ ct2 /= River dir2
+                        else return True
 
 generate :: (RandomGen g) => LabGen g ()
 generate = do
     putArmories
     putHospitals
     putRivers
-    putExits
     putPits
     putTreasures
+    putExits
     putWalls
      -- TODO: reachability
     return ()

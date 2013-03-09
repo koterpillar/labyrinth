@@ -123,8 +123,9 @@ hasWall d p = do
 putExit :: (RandomGen g) => Wall -> LabGen g ()
 putExit w = do
     outer <- gets outerPos
-    outer' <- filterM (uncurry hasWall) $ map swap outer
-    (d, p) <- chooseRandomR outer'
+    outer' <- filterM (allNeighbors noTreasures . fst) outer
+    outer'' <- filterM (uncurry hasWall . swap) outer
+    (p, d) <- chooseRandomR outer''
     updS (wall p d) w
 
 putExits :: (RandomGen g) => LabGen g ()

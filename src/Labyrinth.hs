@@ -1,9 +1,9 @@
 module Labyrinth ( module Labyrinth.Action
-                 , module Labyrinth.Generate
                  , module Labyrinth.Map
                  , module Labyrinth.Move
                  , module Labyrinth.Read
                  , module Labyrinth.Show
+                 , generateLabyrinth
                  ) where
 
 import Labyrinth.Action

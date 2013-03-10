@@ -1,13 +1,16 @@
-module Labyrinth.Generate (generateLabyrinth) where
+module Labyrinth.Generate where
 
 import Labyrinth.Map
 
+import Control.Monad.Random
+import Control.Monad.Reader
+import Control.Monad.State
+
+import Data.Functor.Identity
+import Data.Maybe
 import Data.Tuple
 
 import Peeker
-
-import Control.Monad.Random
-import Control.Monad.State
 
 generateLabyrinth :: (RandomGen g) => Int -> Int -> Int -> g -> (Labyrinth, g)
 generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
@@ -19,9 +22,6 @@ type LabGen g a = LabState (Rand g) a
 type CellPredicate m = Position -> LabState m Bool
 
 type CellPredicateR g = CellPredicate (Rand g)
-
-allDirections :: [Direction]
-allDirections = [L, R, U, D]
 
 isTypeF :: (Monad m) => (CellType -> Bool) -> CellPredicate m
 isTypeF prop pos = do
@@ -61,7 +61,7 @@ randomDirection :: (RandomGen g) => LabGen g Direction
 randomDirection = chooseRandomR allDirections
 
 allOf :: (Monad m) => [a -> m Bool] -> a -> m Bool
-allOf = flip $ \val -> (liftM and) . sequence . map ($ val)
+allOf = flip $ \val -> liftM and . sequence . map ($ val)
 
 cellIf :: (RandomGen g) => CellPredicateR g -> LabGen g Position
 cellIf prop = do
@@ -182,14 +182,74 @@ putTreasures = do
     fakeTreasures <- getRandomR (1, pc)
     dotimes fakeTreasures $ putTreasure FakeTreasure
 
+armories :: Reader Labyrinth [Position]
+armories = do
+    positions <- asks allPositions
+    filterM (\p -> liftM (Armory ==) $ askS (cell p ~> ctype)) positions
+
+pits :: Reader Labyrinth [Position]
+pits = do
+    count <- asks pitCount
+    mapM (asks . pit) [0 .. count - 1]
+
+reachable :: Position -> Reader Labyrinth [Position]
+reachable pos = do
+    ct <- askS $ cell pos ~> ctype
+    let pos' = case ct of
+                   River d -> advance pos d
+                   _       -> pos
+    dirs <- filterM (\d -> liftM (NoWall ==) . askS $ wall pos' d) allDirections
+    let npos = map (advance pos') dirs
+    npos' <- filterM (asks . isInside) npos
+    case ct of
+        Pit _ -> do
+                    npos'' <- pits
+                    return $ npos' ++ npos''
+        _     -> return npos'
+
+-- Given a set of destinations and a position to start from, return a
+-- path to one of them
+reach :: [Position] -> Position -> Reader Labyrinth (Maybe [Position])
+reach dests = reach' dests [] where
+    -- Given a set of destinations, set of visited positions and a position to
+    -- start from, return a path to one of them
+    reach' :: [Position] -> [Position] -> Position -> Reader Labyrinth (Maybe [Position])
+    reach' dests visited pos =
+        if pos `elem` dests then return (Just [pos]) else do
+            npos <- reachable pos
+            let npos' = filter (not . (`elem` visited)) npos
+            let visited' = pos:visited
+            res <- forM npos' $ reach' dests visited'
+            let res' = map (liftM (pos:)) res
+            return $ msum res'
+
+readProp :: (Monad m) => (Position -> Reader Labyrinth Bool) -> CellPredicate m
+readProp prop pos = do
+    l <- get
+    return $ runReader (prop pos) l
+
+armoryReachable :: Position -> Reader Labyrinth Bool
+armoryReachable p = do
+    arm <- armories
+    liftM isJust $ reach arm p
+
+assuming :: (Monad m) => (Position -> LabState Identity a) -> CellPredicate Identity -> CellPredicate m
+assuming action prop position = do
+    l <- get
+    return $ evalState (action position >> prop position) l
+
 putWalls :: (RandomGen g) => LabGen g ()
 putWalls = do
         a <- area
-        let walls = a `div` 6
+        walls <- getRandomR (a `div` 6, a `div` 3)
         forM_ [1..walls] $ \_ -> do
             d <- randomDirection
-            pos <- cellIf $ allOf $ map ($ d) [noWall, notRiver]
-            updS (wall pos d) Wall
+            pos <- cellIf $ allOf $ map ($ d) [ notRiver
+                                              , noWall
+                                              , notToOutside
+                                              ]
+            good <- wontBreakReach d pos
+            when good $ updS (wall pos d) Wall
         return ()
     where
         noWall dir pos = liftM (== NoWall) $ getS $ wall pos dir
@@ -206,6 +266,14 @@ putWalls = do
                             ct2 <- getS $ cell pos2 ~> ctype
                             return $ ct2 /= River dir2
                         else return True
+        notToOutside :: (Monad m) => Direction -> CellPredicate m
+        notToOutside dir pos = do
+            let pos2 = advance pos dir
+            gets $ isInside pos2
+        wontBreakReach :: (Monad m) => Direction -> CellPredicate m
+        wontBreakReach dir = assuming (\pos -> updS (wall pos dir) Wall) $ \pos -> do
+            let pos2 = advance pos dir
+            liftM and $ mapM (readProp armoryReachable) [pos, pos2]
 
 generate :: (RandomGen g) => LabGen g ()
 generate = do
@@ -216,5 +284,4 @@ generate = do
     putTreasures
     putExits
     putWalls
-     -- TODO: reachability
     return ()

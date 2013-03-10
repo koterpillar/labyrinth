@@ -6,11 +6,15 @@ import Control.Monad.State
 
 import Data.List
 import Data.Maybe
+import Data.Monoid
 
 import Peeker
 
 data Direction = L | R | U | D
                  deriving (Eq)
+
+allDirections :: [Direction]
+allDirections = [L, R, U, D]
 
 opposite :: Direction -> Direction
 opposite L = R
@@ -54,6 +58,10 @@ data Position = Pos { pX :: Int
                     , pY :: Int
                     }
                 deriving (Eq)
+
+instance Ord Position where
+    (Pos x1 y1) `compare` (Pos x2 y2) =
+        (y1 `compare` y2) `mappend` (x1 `compare` x2)
 
 instance Show Position where
     show (Pos x y) = "(" ++ (show x) ++ ", " ++ (show y) ++ ")"

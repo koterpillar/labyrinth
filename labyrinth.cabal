@@ -62,5 +62,5 @@ test-Suite tests
                      , json==0.7.*
                      , HTF ==0.10.*
                      , HUnit ==1.2.*
-                     , QuickCheck ==2.4.*
+                     , QuickCheck >=2.6 && < 2.7
   hs-source-dirs:      src, testsuite

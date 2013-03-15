@@ -164,8 +164,16 @@ putRivers = do
                 else do
                     d <- chooseRandomR landDirs
                     let p2 = advance p d
-                    updS (cell p2 ~> ctype) $ River $ opposite d
-                    return p2
+                    reach <- assuming (putRiverRev p2 d) $
+                        (readProp armoryReachable) delta
+                    if reach
+                        then do
+                            putRiverRev p2 d
+                            return p2
+                        else
+                            return p
+        where putRiverRev pos dir =
+                updS (cell pos ~> ctype) $ River $ opposite dir
 
 landCellThere :: (Monad m) => Direction -> CellPredicate m
 landCellThere d p = do
@@ -233,10 +241,10 @@ armoryReachable p = do
     arm <- armories
     liftM isJust $ reach arm p
 
-assuming :: (Monad m) => (Position -> LabState Identity a) -> CellPredicate Identity -> CellPredicate m
-assuming action prop position = do
+assuming :: (Monad m) => LabState Identity a -> LabState Identity Bool -> LabState m Bool
+assuming action prop = do
     l <- get
-    return $ evalState (action position >> prop position) l
+    return $ evalState (action >> prop) l
 
 putWalls :: (RandomGen g) => LabGen g ()
 putWalls = do
@@ -271,7 +279,7 @@ putWalls = do
             let pos2 = advance pos dir
             gets $ isInside pos2
         wontBreakReach :: (Monad m) => Direction -> CellPredicate m
-        wontBreakReach dir = assuming (\pos -> updS (wall pos dir) Wall) $ \pos -> do
+        wontBreakReach dir pos = assuming (updS (wall pos dir) Wall) $ do
             let pos2 = advance pos dir
             liftM and $ mapM (readProp armoryReachable) [pos, pos2]
 

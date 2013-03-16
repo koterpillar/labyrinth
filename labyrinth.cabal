@@ -28,6 +28,7 @@ executable labyrinth-server
   build-depends:       base ==4.5.*
                      , mtl ==2.1.*
                      , template-haskell ==2.7.*
+                     , lens ==3.8.*
                      , acid-state ==0.8.*
                      , happstack-server ==7.1.*
                      , derive ==2.5.*
@@ -49,6 +50,7 @@ test-Suite tests
   build-depends:       base ==4.5.*
                      , mtl ==2.1.*
                      , template-haskell ==2.7.*
+                     , lens ==3.8.*
                      , acid-state ==0.8.*
                      , happstack-server ==7.1.*
                      , derive ==2.5.*

@@ -14,8 +14,6 @@ import qualified Data.Text as T
 
 import Happstack.Server hiding (result)
 
-import Peeker
-
 import qualified Text.JSON as J
 
 import System.Environment

@@ -2,6 +2,7 @@
 
 module LabyrinthServer.Data where
 
+import Control.Lens hiding (Action)
 import Control.Monad.State
 import Control.Monad.Reader (ask)
 
@@ -11,8 +12,6 @@ import Data.Derive.Typeable
 import qualified Data.Map as M
 import Data.SafeCopy (base, deriveSafeCopy)
 import Data.Typeable
-
-import Peeker
 
 import Text.JSON
 
@@ -51,12 +50,12 @@ derive makeTypeable ''MoveResult
 
 type GameId = String
 
-data MoveRecord = MoveRecord { rplayer_ :: Int
-                             , rmove_ :: Move
-                             , rresult_ :: MoveResult
+data MoveRecord = MoveRecord { _rplayer :: Int
+                             , _rmove :: Move
+                             , _rresult :: MoveResult
                              }
 
-derivePeek ''MoveRecord
+makeLenses ''MoveRecord
 
 deriveSafeCopy 0 'base ''MoveRecord
 
@@ -67,55 +66,62 @@ type MoveLog = [MoveRecord]
 logMoveResult :: MoveRecord -> State MoveLog ()
 logMoveResult m = modify (\l -> l ++ [m])
 
-data Game = Game { labyrinth_ :: Labyrinth
-                 , moves_ :: MoveLog
+data Game = Game { _labyrinth :: Labyrinth
+                 , _moves :: MoveLog
                  }
 
 newGame :: Labyrinth -> Game
 newGame l = Game l []
 
-derivePeek ''Game
+makeLenses ''Game
 
 deriveSafeCopy 0 'base ''Game
 
 derive makeTypeable ''Game
 
-data Games = Games { games_ :: M.Map GameId Game }
+data Games = Games { _games :: M.Map GameId Game }
 
 noGames :: Games
 noGames = Games M.empty
 
-derivePeek ''Games
+makeLenses ''Games
 
-game :: GameId -> Peek Games Game
-game id = games ~> mapP id
+game :: GameId -> Simple Traversal Games Game
+game gid = games . ix gid
 
 gameList :: Query Games [GameId]
-gameList = askS games >>= return . M.keys
+gameList = view games >>= return . M.keys
+
+stateUpdate :: State x y -> Update x y
+stateUpdate f = do
+    st <- get
+    let (r, st') = runState f st
+    put st'
+    return r
 
 addGame :: GameId -> Labyrinth -> Update Games Bool
-addGame id lab = stateS games $ do
-    existing <- gets (M.member id)
+addGame gid lab = stateUpdate $ zoom games $ do
+    existing <- gets (M.member gid)
     if existing
         then return False
         else do
-            modify $ M.insert id $ newGame lab
+            modify $ M.insert gid $ newGame lab
             return True
 
 performMove :: GameId -> PlayerId -> Move -> Update Games MoveResult
-performMove g p m = stateS (game g) $ do
-    r <- stateS labyrinth $ L.performMove p m
-    stateS moves $ logMoveResult $ MoveRecord p m r
+performMove g p m = stateUpdate $ zoom (singular $ game g) $ do
+    r <- zoom labyrinth $ L.performMove p m
+    zoom moves $ logMoveResult $ MoveRecord p m r
     return r
 
 currentTurn :: GameId -> Query Games Int
-currentTurn g = askS $ game g ~> labyrinth ~> L.currentTurn
+currentTurn g = view $ (singular $ game g) . labyrinth . L.currentTurn
 
 gameLog :: GameId -> Query Games MoveLog
-gameLog g = askS $ game g ~> moves
+gameLog g = view $ game g . moves
 
 showLabyrinth :: GameId -> Query Games Labyrinth
-showLabyrinth g = askS (game g ~> labyrinth)
+showLabyrinth g = view (singular $ game g . labyrinth)
 
 deriveSafeCopy 0 'base ''Games
 
@@ -135,9 +141,9 @@ logJSON g = JSArray $ map moveJSON g
                                              , ("move", jsShow m)
                                              , ("result", jsShow r)
                                              ]
-            where p = getP rplayer l
-                  m = getP rmove l
-                  r = getP rresult l
+            where p = l ^. rplayer
+                  m = l ^. rmove
+                  r = l ^. rresult
 
 gameListJSON :: [GameId] -> JSValue
 gameListJSON = JSArray . map (JSString . toJSString)

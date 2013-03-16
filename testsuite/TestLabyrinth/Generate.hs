@@ -2,12 +2,11 @@
 
 module TestLabyrinth.Generate (htf_thisModulesTests) where
 
+import Control.Lens
 import Control.Monad.Reader
 
 import Data.List
 import Data.Maybe
-
-import Peeker
 
 import System.Random
 
@@ -21,7 +20,7 @@ instance Arbitrary Labyrinth where
     arbitrary = liftM (fst . generateLabyrinth 5 6 3 . mkStdGen) arbitrary
 
 isCellType :: CellTypeResult -> Cell -> Bool
-isCellType ct = (ct ==) . ctResult . getP ctype
+isCellType ct = (ct ==) . ctResult . view ctype
 
 countByType :: CellTypeResult -> [Cell] -> Int
 countByType ct = length . filter (isCellType ct)
@@ -62,33 +61,33 @@ has_required_types l = and $ map (\ct -> typeExists ct cells) requiredTypes
 
 has_true_treasure :: Labyrinth -> Bool
 has_true_treasure = (1 ==) . length . filter hasTrueTreasure . allCells
-    where hasTrueTreasure = ([TrueTreasure] ==) . getP ctreasures
+    where hasTrueTreasure = ([TrueTreasure] ==) . view ctreasures
 
 enough_fake_treasures :: Labyrinth -> Bool
 enough_fake_treasures l = fakeTreasureCount >= 1 && fakeTreasureCount <= (playerCount l)
     where fakeTreasureCount = length $ filter hasFakeTreasure $ allCells l
-          hasFakeTreasure = ([FakeTreasure] ==) . getP ctreasures
+          hasFakeTreasure = ([FakeTreasure] ==) . view ctreasures
 
 no_treasures_together :: Labyrinth -> Bool
 no_treasures_together = and . map ((1 >=) . treasureCount) . allCells
-    where treasureCount = length . getP ctreasures
+    where treasureCount = length . view ctreasures
 
 treasures_on_land :: Labyrinth -> Bool
 treasures_on_land = and . map isLand . filter hasTreasures . allCells
     where isLand = isCellType LandR
-          hasTreasures = (0 <) . length . getP ctreasures
+          hasTreasures = (0 <) . length . view ctreasures
 
 enough_exits :: Labyrinth -> Bool
 enough_exits l = (2 <=) $ length $ filter isExit $ outerPos l
-    where isExit (p, d) = getP (wall p d) l /= HardWall
+    where isExit (p, d) = l ^. wall p d /= HardWall
 
 no_walls_in_rivers :: Labyrinth -> Bool
 no_walls_in_rivers l = and $ map noWall $ filter isRiver $ allPosCells l
-    where isRiver (_, c) = isRiver' $ getP ctype c
+    where isRiver (_, c) = isRiver' $ c ^. ctype
           isRiver' (River _) = True
           isRiver' _         = False
-          noWall (p, c) = getP (wall p d) l == NoWall
-              where d = getP (ctype ~> riverDirection) c
+          noWall (p, c) = l ^. wall p d == NoWall
+              where d = c ^?! (ctype . riverDirection)
 
 reachJoin :: [Position] -> Position -> Reader Labyrinth [Position]
 reachJoin dests pos = do

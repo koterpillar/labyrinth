@@ -2,9 +2,9 @@
 
 module Labyrinth.Move where
 
-import Labyrinth.Map
+import Control.Lens hiding (Action)
 
-import Peeker
+import Labyrinth.Map
 
 data MoveDirection = Towards Direction | Next
                    deriving (Eq)
@@ -42,33 +42,33 @@ data TreasureResult = TurnedToAshesR
                     | TrueTreasureR
                     deriving (Eq)
 
-data CellEvents = CellEvents { foundBullets_   :: Int
-                             , foundGrenades_  :: Int
-                             , foundTreasures_ :: Int
-                             , transportedTo_  :: Maybe CellTypeResult
+data CellEvents = CellEvents { _foundBullets   :: Int
+                             , _foundGrenades  :: Int
+                             , _foundTreasures :: Int
+                             , _transportedTo  :: Maybe CellTypeResult
                              } deriving (Eq)
 
-derivePeek ''CellEvents
+makeLenses ''CellEvents
 
 noEvents :: CellEvents
-noEvents = CellEvents { foundBullets_   = 0
-                      , foundGrenades_  = 0
-                      , foundTreasures_ = 0
-                      , transportedTo_  = Nothing
+noEvents = CellEvents { _foundBullets   = 0
+                      , _foundGrenades  = 0
+                      , _foundTreasures = 0
+                      , _transportedTo  = Nothing
                       }
 
-data GoResult = Went { onto_    :: CellTypeResult
-                     , wevents_ :: CellEvents
+data GoResult = Went { _onto    :: CellTypeResult
+                     , _wevents :: CellEvents
                      }
-              | WentOutside { treasureResult_ :: Maybe TreasureResult
+              | WentOutside { _treasureResult :: Maybe TreasureResult
                             }
-              | HitWall { hitr_ :: CellEvents
+              | HitWall { _hitr :: CellEvents
                         }
               | LostOutside
               | InvalidMovement
               deriving (Eq)
 
-derivePeek ''GoResult
+makeLenses ''GoResult
 
 data ShootResult = ShootOK
                  | Scream
@@ -86,25 +86,25 @@ data ActionResult = GoR GoResult
                   | Draw
                   deriving (Eq)
 
-data StartResult = StartR { splayer_ :: PlayerId
-                          , scell_   :: CellTypeResult
-                          , sevents_ :: CellEvents
+data StartResult = StartR { _splayer :: PlayerId
+                          , _scell   :: CellTypeResult
+                          , _sevents :: CellEvents
                           } deriving (Eq)
 
-derivePeek ''StartResult
+makeLenses ''StartResult
 
 data ChoosePositionResult = ChosenOK
                           | AllChosenOK [StartResult]
                           | ChooseAgain
                           deriving (Eq)
 
-data ReorderCellResult = ReorderOK { ronto_   :: CellTypeResult
-                                   , revents_ :: CellEvents
+data ReorderCellResult = ReorderOK { _ronto   :: CellTypeResult
+                                   , _revents :: CellEvents
                                    }
                        | ReorderForbidden {}
                        deriving (Eq)
 
-derivePeek ''ReorderCellResult
+makeLenses ''ReorderCellResult
 
 data MoveResult = MoveRes [ActionResult]
                 | ChoosePositionR ChoosePositionResult

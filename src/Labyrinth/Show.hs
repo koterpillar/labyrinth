@@ -3,13 +3,12 @@ module Labyrinth.Show where
 import Labyrinth.Map
 import Labyrinth.Move
 
+import Control.Lens hiding (Action)
 import Control.Monad.Reader
 import Control.Monad.Writer
 
 import Data.List
 import Data.Maybe
-
-import Peeker
 
 instance Show CellType where
     show Land       = "."
@@ -23,7 +22,7 @@ instance Show CellType where
     show RiverDelta = "O"
 
 instance Show Cell where
-    show c = show (ctype_ c) ++ " "
+    show c = show (_ctype c) ++ " "
 
 instance Show Treasure where
     show TrueTreasure = "true treasure"
@@ -37,21 +36,21 @@ instance Show Health where
 instance Show Player where
     show p = execWriter $ (flip runReaderT) p $ do
         tell "Player "
-        pos <- askS position
+        pos <- view position
         tell $ show pos
         tell ", "
-        b <- askS pbullets
+        b <- view pbullets
         tell $ show b
         tell "B"
         tell ", "
-        g <- askS pgrenades
+        g <- view pgrenades
         tell $ show g
         tell "G"
-        h <- askS phealth
+        h <- view phealth
         when (h /= Healthy) $ do
             tell ", "
             tell $ show h
-        f <- askS pfell
+        f <- view pfell
         when f $ do
             tell ", fallen"
 
@@ -69,16 +68,16 @@ showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
     where mk = "+"
           w  = labWidth l
-          ws = map (\x -> showH $ getP (wallH (Pos x y)) l) [0..w - 1]
+          ws = map (\x -> showH $ l ^?! wallH (Pos x y)) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
 showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1])
                        ++ showVWall l (Pos w y)
                    where w = labWidth l
                          showVWall :: Labyrinth -> Position -> String
-                         showVWall l p = showV $ getP (wallV p) l
+                         showVWall l p = showV $ l ^?! wallV p
                          showCell :: Labyrinth -> Position -> String
-                         showCell l p = show $ getP (cell p) l
+                         showCell l p = show $ l ^?! cell p
 
 showMap :: Labyrinth -> [String]
 showMap l = firstLines ++ [lastLine]
@@ -88,11 +87,11 @@ showMap l = firstLines ++ [lastLine]
           lastLine = showWallLine l h
 
 showPlayers :: Labyrinth -> [String]
-showPlayers l = map (uncurry showPlayer) $ zip (getP players l) [0..]
+showPlayers l = map (uncurry showPlayer) $ zip (l ^. players) [0..]
     where showPlayer p i = (show i) ++ ": " ++ (show p)
 
 showCurrentPlayer :: Labyrinth -> [String]
-showCurrentPlayer l = ["Current player: " ++ show (getP currentTurn l)]
+showCurrentPlayer l = ["Current player: " ++ show (l ^. currentTurn)]
 
 showItems :: Labyrinth -> [String]
 showItems = concat . map showCellItemsOn . allPosCells
@@ -102,18 +101,18 @@ showItems = concat . map showCellItemsOn . allPosCells
 
 showCellItems :: Cell -> String
 showCellItems c = intercalate ", " $ execWriter $ (flip runReaderT) c $ do
-    b <- askS cbullets
+    b <- view cbullets
     when (b > 0) $ tell [show b ++ "B"]
-    g <- askS cgrenades
+    g <- view cgrenades
     when (g > 0) $ tell [show g ++ "G"]
-    t <- askS ctreasures
+    t <- view ctreasures
     tell $ map show t
 
 showStatus :: Labyrinth -> [String]
 showStatus l = execWriter $ (flip runReaderT) l $ do
-    pc <- askS positionsChosen
+    pc <- view positionsChosen
     when (not pc) $ tell ["Positions not chosen"]
-    end <- askS gameEnded
+    end <- view gameEnded
     when end $ tell ["Game ended"]
 
 instance Show Labyrinth where
@@ -157,13 +156,13 @@ instance Show CellTypeResult where
 
 instance Show CellEvents where
     show r = execWriter $ do
-            let transported = getP transportedTo r
+            let transported = r ^. transportedTo
             when (isJust transported) $ do
                 tell ", was transported to "
                 tell $ show $ fromJust $ transported
-            let b = getP foundBullets r
-            let g = getP foundGrenades r
-            let t = getP foundTreasures r
+            let b = r ^. foundBullets
+            let g = r ^. foundGrenades
+            let t = r ^. foundTreasures
             let found = b > 0 || g > 0 || t > 0
             when found $ do
                 tell ", found "
@@ -186,7 +185,7 @@ instance Show ActionResult where
     show (GoR (Went ct cr)) = "went onto " ++ show ct ++ show cr
     show (GoR went@WentOutside{}) = execWriter $ do
         tell "went outside"
-        let tr = getP treasureResult went
+        let tr = went ^?! treasureResult
         case tr of
             Just TurnedToAshesR -> tell ", treasure turned to ashes"
             Just TrueTreasureR  -> tell " with a true treasure - victory"

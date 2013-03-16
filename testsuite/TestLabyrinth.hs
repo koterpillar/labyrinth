@@ -4,9 +4,8 @@ module TestLabyrinth where
 
 import Labyrinth
 
+import Control.Lens
 import Control.Monad.State
-
-import Peeker
 
 import Test.Framework
 import TestLabyrinth.Common
@@ -25,7 +24,7 @@ test_wrong_turn = do
         WrongTurn
         $ return ()
     let endgame = applyState empty_labyrinth $ do
-        updS gameEnded True
+        gameEnded .= True
     assertMoveUpdates'
         endgame
         (Move [goTowards D])
@@ -38,10 +37,10 @@ test_combined = do
         (Move [Grenade R, goTowards R])
         (MoveRes [GrenadeR GrenadeOK, GoR $ Went LandR noEvents])
         $ do
-            updS (player 0 ~> position) (Pos 1 0)
-            updS (player 0 ~> pgrenades) 2
-            updS (wall (Pos 0 0) R) NoWall
-            updS currentTurn 1
+            (player 0 . position) .= Pos 1 0
+            (player 0 . pgrenades) .= 2
+            wall (Pos 0 0) R .= NoWall
+            currentTurn .= 1
 
 test_invalid = do
     assertMoveUpdates'

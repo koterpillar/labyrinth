@@ -5,8 +5,6 @@ import Labyrinth.Move
 
 import Control.Monad
 
-import Peeker
-
 import Text.Parsec
 import Text.Parsec.Language
 import Text.Parsec.String (Parser)

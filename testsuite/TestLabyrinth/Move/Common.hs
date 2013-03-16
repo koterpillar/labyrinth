@@ -4,11 +4,10 @@ module TestLabyrinth.Move.Common where
 
 import Labyrinth
 
+import Control.Lens
 import Control.Monad.State
 
 import TestLabyrinth.Common
-
-import Peeker
 
 import Test.Framework
 import qualified Test.HUnit as HU
@@ -22,4 +21,4 @@ assertMoveUpdates initialLab pi move result labUpdate = do
 
 assertMoveUpdates' :: Labyrinth -> Move -> MoveResult -> State Labyrinth () -> HU.Assertion
 assertMoveUpdates' initialLab = assertMoveUpdates initialLab pi
-    where pi = getP currentTurn initialLab
+    where pi = initialLab ^. currentTurn

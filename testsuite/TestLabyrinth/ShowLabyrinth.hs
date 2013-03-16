@@ -4,9 +4,9 @@ module TestLabyrinth.ShowLabyrinth (htf_thisModulesTests) where
 
 import Labyrinth
 
-import Data.List
+import Control.Lens
 
-import Peeker
+import Data.List
 
 import Test.Framework
 import TestLabyrinth.Common
@@ -51,12 +51,12 @@ interesting_expected = intercalate "\n" $ [ "+==+==+==+--+==+==+"
                                           ]
 
 interesting_wounded = applyState interesting_labyrinth $ do
-    updS (player 1 ~> phealth) Wounded
-    updS (player 1 ~> pbullets) 0
-    updS (cell (Pos 4 4) ~> cbullets) 2
-    updS (cell (Pos 5 4) ~> cgrenades) 2
-    updS (cell (Pos 5 2) ~> cbullets) 1
-    updS (cell (Pos 5 2) ~> cgrenades) 1
+    (player 1 . phealth) .= Wounded
+    (player 1 . pbullets) .= 0
+    (cell (Pos 4 4) . cbullets) .= 2
+    (cell (Pos 5 4) . cgrenades) .= 2
+    (cell (Pos 5 2) . cbullets) .= 1
+    (cell (Pos 5 2) . cgrenades) .= 1
 
 test_show_empty = assertShowEquals empty_expected empty_labyrinth
 

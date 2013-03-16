@@ -1,14 +1,14 @@
 {-# Language TemplateHaskell #-}
 module Labyrinth.Map where
 
+import Control.Lens
 import Control.Monad
 import Control.Monad.State
 
 import Data.List
+import Data.List.Lens
 import Data.Maybe
 import Data.Monoid
-
-import Peeker
 
 data Direction = L | R | U | D
                  deriving (Eq)
@@ -25,30 +25,30 @@ opposite D = U
 data CellType = Land
               | Armory
               | Hospital
-              | Pit { pitNumber_ :: Int }
-              | River { riverDirection_ :: Direction }
+              | Pit { _pitNumber :: Int }
+              | River { _riverDirection :: Direction }
               | RiverDelta
               deriving (Eq)
 
-derivePeek ''CellType
+makeLenses ''CellType
 
 data Treasure = TrueTreasure | FakeTreasure
                 deriving (Eq)
 
-data Cell = Cell { ctype_      :: CellType
-                 , cbullets_   :: Int
-                 , cgrenades_  :: Int
-                 , ctreasures_ :: [Treasure]
+data Cell = Cell { _ctype      :: CellType
+                 , _cbullets   :: Int
+                 , _cgrenades  :: Int
+                 , _ctreasures :: [Treasure]
                  }
                  deriving (Eq)
 
-derivePeek ''Cell
+makeLenses ''Cell
 
 emptyCell :: CellType -> Cell
-emptyCell ct = Cell { ctype_      = ct
-                    , cbullets_   = 0
-                    , cgrenades_  = 0
-                    , ctreasures_ = []
+emptyCell ct = Cell { _ctype      = ct
+                    , _cbullets   = 0
+                    , _cgrenades  = 0
+                    , _ctreasures = []
                     }
 
 data Wall = NoWall | Wall | HardWall
@@ -75,16 +75,16 @@ advance (Pos x y) D = Pos x (y + 1)
 data Health = Healthy | Wounded | Dead
               deriving (Eq)
 
-data Player = Player { position_  :: Position
-                     , phealth_   :: Health
-                     , pbullets_  :: Int
-                     , pgrenades_ :: Int
-                     , ptreasure_ :: Maybe Treasure
-                     , pfell_     :: Bool
+data Player = Player { _position  :: Position
+                     , _phealth   :: Health
+                     , _pbullets  :: Int
+                     , _pgrenades :: Int
+                     , _ptreasure :: Maybe Treasure
+                     , _pfell     :: Bool
                      }
               deriving (Eq)
 
-derivePeek ''Player
+makeLenses ''Player
 
 maxBullets :: Int
 maxBullets = 3
@@ -93,34 +93,34 @@ maxGrenades :: Int
 maxGrenades = 3
 
 initialPlayer :: Position -> Player
-initialPlayer pos = Player { position_  = pos
-                           , phealth_   = Healthy
-                           , pbullets_  = maxBullets
-                           , pgrenades_ = maxGrenades
-                           , ptreasure_ = Nothing
-                           , pfell_     = False
+initialPlayer pos = Player { _position  = pos
+                           , _phealth   = Healthy
+                           , _pbullets  = maxBullets
+                           , _pgrenades = maxGrenades
+                           , _ptreasure = Nothing
+                           , _pfell     = False
                            }
 
 type PlayerId = Int
 
 -- wallsV and wallsH are considered to be to the left and top of the cells
-data Labyrinth = Labyrinth { cells_              :: [[Cell]]
-                           , wallsH_             :: [[Wall]]
-                           , wallsV_             :: [[Wall]]
-                           , players_            :: [Player]
-                           , currentTurn_        :: PlayerId
-                           , positionsChosen_    :: Bool
-                           , gameEnded_          :: Bool
+data Labyrinth = Labyrinth { _cells              :: [[Cell]]
+                           , _wallsH             :: [[Wall]]
+                           , _wallsV             :: [[Wall]]
+                           , _players            :: [Player]
+                           , _currentTurn        :: PlayerId
+                           , _positionsChosen    :: Bool
+                           , _gameEnded          :: Bool
                            }
                  deriving (Eq)
 
-derivePeek ''Labyrinth
+makeLenses ''Labyrinth
 
 labWidth :: Labyrinth -> Int
-labWidth = length . cells_
+labWidth = length . _cells
 
 labHeight :: Labyrinth -> Int
-labHeight = length . head . cells_
+labHeight = length . head . _cells
 
 isInside :: Position -> Labyrinth -> Bool
 isInside (Pos x y) l = and [ x >= 0
@@ -144,45 +144,47 @@ outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]
           h = labHeight l
 
 playerCount :: Labyrinth -> Int
-playerCount = length . players_
+playerCount = length . _players
 
 emptyLabyrinth :: Int -> Int -> Int -> Labyrinth
 emptyLabyrinth w h playerCount =
-    let initialLab = Labyrinth { cells_              = replicate w $ replicate h $ emptyCell Land
-                               , wallsH_             = replicate w $ replicate (h + 1) $ NoWall
-                               , wallsV_             = replicate (w + 1) $ replicate h $ NoWall
-                               , players_            = replicate playerCount $ initialPlayer $ Pos 0 0
-                               , currentTurn_        = 0
-                               , positionsChosen_    = False
-                               , gameEnded_          = False
+    let initialLab = Labyrinth { _cells              = replicate w $ replicate h $ emptyCell Land
+                               , _wallsH             = replicate w $ replicate (h + 1) $ NoWall
+                               , _wallsV             = replicate (w + 1) $ replicate h $ NoWall
+                               , _players            = replicate playerCount $ initialPlayer $ Pos 0 0
+                               , _currentTurn        = 0
+                               , _positionsChosen    = False
+                               , _gameEnded          = False
                                }
     in (flip execState) initialLab $ do
-        forM_ [0..w - 1] $ \x -> updS (wall (Pos x 0) U) HardWall
-        forM_ [0..w - 1] $ \x -> updS (wall (Pos x (h - 1)) D) HardWall
-        forM_ [0..h - 1] $ \y -> updS (wall (Pos 0 y) L) HardWall
-        forM_ [0..h - 1] $ \y -> updS (wall (Pos (w - 1) y) R) HardWall
+        forM_ [0..w - 1] $ \x -> wall (Pos x 0) U .= HardWall
+        forM_ [0..w - 1] $ \x -> wall (Pos x (h - 1)) D .= HardWall
+        forM_ [0..h - 1] $ \y -> wall (Pos 0 y) L .= HardWall
+        forM_ [0..h - 1] $ \y -> wall (Pos (w - 1) y) R .= HardWall
 
-cell :: Position -> Peek Labyrinth Cell
-cell (Pos x y) = cells ~> listP x ~> listP y
+cell :: Position -> Simple Lens Labyrinth Cell
+cell (Pos x y) = cells . ix' x . ix' y
 
-wallH :: Position -> Peek Labyrinth Wall
-wallH (Pos x y) = wallsH ~> listP x ~> listP y
+wallH :: Position -> Simple Lens Labyrinth Wall
+wallH (Pos x y) = wallsH . ix' x . ix' y
 
-wallV :: Position -> Peek Labyrinth Wall
-wallV (Pos x y) = wallsV ~> listP x ~> listP y
+wallV :: Position -> Simple Lens Labyrinth Wall
+wallV (Pos x y) = wallsV . ix' x . ix' y
 
-wall :: Position -> Direction -> Peek Labyrinth Wall
+wall :: Position -> Direction -> Simple Lens Labyrinth Wall
 wall p U = wallH p
 wall p L = wallV p
 wall p D = wallH (advance p D)
 wall p R = wallV (advance p R)
 
-player :: PlayerId -> Peek Labyrinth Player
-player i = players ~> listP i
+ix' i = singular $ ix i
 
-currentPlayer :: Peek Labyrinth Player
-currentPlayer l = (player i) l
-    where i = getP currentTurn l
+player :: PlayerId -> Simple Lens Labyrinth Player
+player i = players . ix' i
+
+currentPlayer :: Simple Lens Labyrinth Player
+currentPlayer f l = (player i) f l
+    where i = l ^?! currentTurn :: PlayerId
 
 allPositions :: Labyrinth -> [Position]
 allPositions l = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
@@ -190,17 +192,17 @@ allPositions l = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
           h = labHeight l
 
 allCells :: Labyrinth -> [Cell]
-allCells l = map (\p -> getP (cell p) l) $ allPositions l
+allCells l = map (\p -> l ^?! cell p) $ allPositions l
 
 allPosCells :: Labyrinth -> [(Position, Cell)]
 allPosCells l = zipWith (,) (allPositions l) (allCells l)
 
 pitCount :: Labyrinth -> Int
-pitCount = length . filter (isPit . ctype_) . allCells
+pitCount = length . filter (isPit . _ctype) . allCells
     where isPit (Pit _) = True
           isPit _       = False
 
 pit :: Int -> Labyrinth -> Position
-pit i = fst . fromJust . find (isIthPit . ctype_ . snd) . allPosCells
+pit i = fst . fromJust . find (isIthPit . _ctype . snd) . allPosCells
     where isIthPit (Pit j) = i == j
           isIthPit _       = False

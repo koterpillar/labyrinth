@@ -39,7 +39,8 @@ executable labyrinth-server
                      , text ==0.11.*
                      , transformers ==0.3.*
                      , MonadRandom ==0.1.*
-                     , json==0.7.*
+                     , json ==0.7.*
+                     , monad-loops ==0.3.*
   hs-source-dirs:      src
   if (flag(static))
     ghc-options:       -static -optl-pthread -optl-static
@@ -61,7 +62,8 @@ test-Suite tests
                      , text ==0.11.*
                      , transformers ==0.3.*
                      , MonadRandom ==0.1.*
-                     , json==0.7.*
+                     , json ==0.7.*
+                     , monad-loops ==0.3.*
                      , HTF ==0.10.*
                      , HUnit ==1.2.*
                      , QuickCheck >=2.6 && < 2.7

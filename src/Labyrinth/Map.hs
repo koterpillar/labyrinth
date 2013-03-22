@@ -199,8 +199,16 @@ allPosCells l = zipWith (,) (allPositions l) (allCells l)
 
 pitCount :: Labyrinth -> Int
 pitCount = length . filter (isPit . _ctype) . allCells
-    where isPit (Pit _) = True
-          isPit _       = False
+
+armories :: Labyrinth -> [Position]
+armories = map fst . filter ((Armory ==) . _ctype . snd) . allPosCells
+
+pits :: Labyrinth -> [Position]
+pits = map fst . filter (isPit . _ctype . snd) . allPosCells
+
+isPit :: CellType -> Bool
+isPit (Pit _) = True
+isPit _       = False
 
 pit :: Int -> Labyrinth -> Position
 pit i = fst . fromJust . find (isIthPit . _ctype . snd) . allPosCells

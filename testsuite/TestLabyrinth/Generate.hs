@@ -11,7 +11,7 @@ import Data.Maybe
 import System.Random
 
 import Labyrinth
-import Labyrinth.Generate
+import Labyrinth.Reachability
 
 import Test.Framework
 import Test.QuickCheck (conjoin, printTestCase, Property)
@@ -96,7 +96,7 @@ reachJoin dests pos = do
 
 reachAll :: Reader Labyrinth [Position]
 reachAll = do
-    initial <- armories
+    initial <- asks armories
     all <- asks allPositions
     foldM reachJoin initial all
 

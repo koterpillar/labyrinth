@@ -184,9 +184,7 @@ putTreasures = do
     dotimes fakeTreasures $ putTreasure FakeTreasure
 
 readProp :: Monad m => (Position -> Reader Labyrinth Bool) -> CellPredicate m
-readProp prop pos = do
-    l <- get
-    return $ runReader (prop pos) l
+readProp prop pos = gets $ runReader $ prop pos
 
 putWalls :: RandomGen g => LabGen g ()
 putWalls = do

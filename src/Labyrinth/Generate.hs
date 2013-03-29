@@ -191,7 +191,7 @@ readProp prop pos = do
 putWalls :: RandomGen g => LabGen g ()
 putWalls = do
         a <- gets area
-        walls <- getRandomR (a `div` 6, a `div` 3)
+        walls <- getRandomR (a `div` 4, a `div` 2)
         forM_ [1..walls] $ \_ -> do
             d <- randomDirection
             pos <- cellIf $ allOf $ map ($ d) [ notRiver
@@ -218,44 +218,51 @@ putWalls = do
             let pos2 = advance pos dir
             gets $ isInside pos2
 
-goodReachability :: Labyrinth -> Bool
-goodReachability = runReader $ do
+goodReachability :: Monad m => LabState m Bool
+goodReachability = gets $ runReader $ do
     n <- asks area
     r <- asks (reachConverge $ n `div` 3)
     pos <- asks allPositions
     let res = map (\p -> M.findWithDefault False p r) pos
     return $ and res
 
+goodDistribution :: Monad m => LabState m Bool
+goodDistribution = gets $ runReader $ do
+    n <- asks area
+    r <- asks (converge $ n * 2)
+    let res = maximum $ M.elems r
+    return $ res <= 0.15
+
 untilR :: MonadState v m => m Bool -> m a -> m ()
 untilR prop act = do
     v <- get
     untilM_ (put v >> act) prop
 
-untilRN :: MonadState v m => Int -> m Bool -> m a -> m ()
-untilRN 0 _ _ = return ()
+untilRN :: MonadState v m => Int -> m Bool -> m a -> m Bool
+untilRN 0 _ _ = return False
 untilRN n prop act = do
     v <- get
     act
     res <- prop
     if res
-        then return ()
+        then return True
         else do
             put v
             untilRN (n - 1) prop act
 
 generate :: RandomGen g => LabGen g ()
-generate = let good = gets goodReachability in do
-    untilRN 10 good $ do
-        putArmories
-        putHospitals
-        putPits
-        untilRN 50 good $ do
-            putRivers
-            putWalls
-    res <- good
-    if res
-        then do
-            putTreasures
-            putExits
-            return ()
-        else error "cannot generate anything!"
+generate = do
+    untilRN 10 goodDistribution $ do
+        res <- untilRN 10 goodReachability $ do
+            putArmories
+            putHospitals
+            putPits
+            untilRN 50 goodReachability $ do
+                putRivers
+                putWalls
+        if res
+            then do
+                putTreasures
+                putExits
+            else error "cannot generate anything!"
+    return ()

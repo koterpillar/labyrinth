@@ -14,9 +14,12 @@
             </div>
             <div id='games' class='body'></div>
             <form id='add_game' class='footer'>
-                Players: <input type='number' min='2' name='players' />
-                Width: <input type='number' min='4' max='10' name='width' />
-                Height: <input type='number' min='4' max='10' name='height' />
+                <label for='add_game_players'>Players:</label>
+                <input type='number' min='2' name='players' id='add_game_players' />
+                <label for='add_game_width'>Width:</label>
+                <input type='number' min='4' max='10' name='width' id='add_game_width' />
+                <label for='add_game_height'>Height:</label>
+                <input type='number' min='4' max='10' name='height' id='add_game_height' />
                 <input type='submit' value='Create game' />
             </form>
         </div>
@@ -27,8 +30,10 @@
             </div>
             <div id='history' class='body'></div>
             <form id='make_move' class='footer'>
-                <input type='number' min='0' id='player' name='player' />
-                <input type='text' id='move' name='move' />
+                <label for='make_move_player'>Player:</label>
+                <input type='number' min='0' id='make_move_player' name='player' />
+                <label for='make_move_move'>Move:</label>
+                <input type='text' id='make_move_move' name='move' lang='en' />
                 <input type='submit' value='Make move' />
             </form>
         </div>

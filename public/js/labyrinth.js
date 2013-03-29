@@ -72,7 +72,7 @@ $(document).ready(function () {
     $('#make_move').submit(function () {
         var form = $(this);
         var data = form.serialize();
-        addLine($('#player').val() + " > " + $('#move').val());
+        addLine($('#make_move_player').val() + " > " + $('#make_move_move').val());
         scrollDown();
         $.post('/' + gameId + '/move', data, function (result) {
             addLine(result);

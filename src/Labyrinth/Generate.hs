@@ -255,7 +255,7 @@ generate = let good = gets goodReachability in do
     res <- good
     if res
         then do
-        putTreasures
-        putExits
-        return ()
-    else error "cannot generate anything!"
+            putTreasures
+            putExits
+            return ()
+        else error "cannot generate anything!"

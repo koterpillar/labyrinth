@@ -7,6 +7,7 @@ import Control.Monad.State
 
 import Data.List
 import Data.List.Lens
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid
 
@@ -104,23 +105,19 @@ initialPlayer pos = Player { _position  = pos
 type PlayerId = Int
 
 -- wallsV and wallsH are considered to be to the left and top of the cells
-data Labyrinth = Labyrinth { _cells              :: [[Cell]]
-                           , _wallsH             :: [[Wall]]
-                           , _wallsV             :: [[Wall]]
-                           , _players            :: [Player]
-                           , _currentTurn        :: PlayerId
-                           , _positionsChosen    :: Bool
-                           , _gameEnded          :: Bool
+data Labyrinth = Labyrinth { _labWidth        :: Int
+                           , _labHeight       :: Int
+                           , _cells           :: M.Map Position Cell
+                           , _wallsH          :: M.Map Position Wall
+                           , _wallsV          :: M.Map Position Wall
+                           , _players         :: [Player]
+                           , _currentTurn     :: PlayerId
+                           , _positionsChosen :: Bool
+                           , _gameEnded       :: Bool
                            }
                  deriving (Eq)
 
 makeLenses ''Labyrinth
-
-labWidth :: Labyrinth -> Int
-labWidth = length . _cells
-
-labHeight :: Labyrinth -> Int
-labHeight = length . head . _cells
 
 isInside :: Position -> Labyrinth -> Bool
 isInside (Pos x y) l = and [ x >= 0
@@ -128,8 +125,8 @@ isInside (Pos x y) l = and [ x >= 0
                             , y >= 0
                             , y < h
                             ]
-    where w = labWidth l
-          h = labHeight l
+    where w = l ^. labWidth
+          h = l ^. labHeight
 
 isOutside :: Position -> Labyrinth -> Bool
 isOutside p = not . isInside p
@@ -140,17 +137,25 @@ outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]
                     , [(Pos 0 y, L)       | y <- [0..h - 1]]
                     , [(Pos (w - 1) y, R) | y <- [0..h - 1]]
                     ]
-    where w = labWidth l
-          h = labHeight l
+    where w = l ^. labWidth
+          h = l ^. labHeight
 
 playerCount :: Labyrinth -> Int
-playerCount = length . _players
+playerCount = length . (^. players)
+
+posRectangle :: Int -> Int -> [Position]
+posRectangle w h = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
+
+mapRectangle :: a -> Int -> Int -> M.Map Position a
+mapRectangle x w h = M.fromList $ zip (posRectangle w h) (repeat x)
 
 emptyLabyrinth :: Int -> Int -> Int -> Labyrinth
 emptyLabyrinth w h playerCount =
-    let initialLab = Labyrinth { _cells              = replicate w $ replicate h $ emptyCell Land
-                               , _wallsH             = replicate w $ replicate (h + 1) $ NoWall
-                               , _wallsV             = replicate (w + 1) $ replicate h $ NoWall
+    let initialLab = Labyrinth { _labWidth           = w
+                               , _labHeight          = h
+                               , _cells              = mapRectangle (emptyCell Land) w h
+                               , _wallsH             = mapRectangle NoWall w (h + 1)
+                               , _wallsV             = mapRectangle NoWall (w + 1) h
                                , _players            = replicate playerCount $ initialPlayer $ Pos 0 0
                                , _currentTurn        = 0
                                , _positionsChosen    = False
@@ -163,13 +168,13 @@ emptyLabyrinth w h playerCount =
         forM_ [0..h - 1] $ \y -> wall (Pos (w - 1) y) R .= HardWall
 
 cell :: Position -> Simple Lens Labyrinth Cell
-cell (Pos x y) = cells . ix' x . ix' y
+cell p = cells . ix' p
 
 wallH :: Position -> Simple Lens Labyrinth Wall
-wallH (Pos x y) = wallsH . ix' x . ix' y
+wallH p = wallsH . ix' p
 
 wallV :: Position -> Simple Lens Labyrinth Wall
-wallV (Pos x y) = wallsV . ix' x . ix' y
+wallV p = wallsV . ix' p
 
 wall :: Position -> Direction -> Simple Lens Labyrinth Wall
 wall p U = wallH p
@@ -184,12 +189,12 @@ player i = players . ix' i
 
 currentPlayer :: Simple Lens Labyrinth Player
 currentPlayer f l = (player i) f l
-    where i = l ^?! currentTurn :: PlayerId
+    where i = l ^?! currentTurn
 
 allPositions :: Labyrinth -> [Position]
-allPositions l = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
-    where w = labWidth l
-          h = labHeight l
+allPositions l = posRectangle w h
+    where w = l ^. labWidth
+          h = l ^. labHeight
 
 allCells :: Labyrinth -> [Cell]
 allCells l = map (\p -> l ^?! cell p) $ allPositions l

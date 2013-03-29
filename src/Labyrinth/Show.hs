@@ -67,13 +67,13 @@ showV HardWall = "X"
 showWallLine :: Labyrinth -> Int -> String
 showWallLine l y = mk ++ intercalate mk ws ++ mk
     where mk = "+"
-          w  = labWidth l
+          w  = l ^. labWidth
           ws = map (\x -> showH $ l ^?! wallH (Pos x y)) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
 showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1])
                        ++ showVWall l (Pos w y)
-                   where w = labWidth l
+                   where w = l ^. labWidth
                          showVWall :: Labyrinth -> Position -> String
                          showVWall l p = showV $ l ^?! wallV p
                          showCell :: Labyrinth -> Position -> String
@@ -81,7 +81,7 @@ showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x
 
 showMap :: Labyrinth -> [String]
 showMap l = firstLines ++ [lastLine]
-    where h = labHeight l
+    where h = l ^. labHeight
           showLine l i = [showWallLine l i, showCellLine l i]
           firstLines = concat $ map (showLine l) [0..h - 1]
           lastLine = showWallLine l h

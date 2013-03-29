@@ -40,10 +40,10 @@ dotimes :: Monad m => Int -> m a -> m ()
 dotimes n = sequence_ . replicate n
 
 perimeter :: Labyrinth -> Int
-perimeter l = (labWidth l + labHeight l) * 2
+perimeter l = (l ^. labWidth + l ^. labHeight) * 2
 
 area :: Labyrinth -> Int
-area l = labWidth l * labHeight l
+area l = l ^. labWidth * l ^. labHeight
 
 chooseRandomR :: RandomGen g => [a] -> LabGen g a
 chooseRandomR l = do

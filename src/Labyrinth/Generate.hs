@@ -188,11 +188,6 @@ readProp prop pos = do
     l <- get
     return $ runReader (prop pos) l
 
-armoryReachable :: Position -> Reader Labyrinth Bool
-armoryReachable p = do
-    arm <- asks armories
-    liftM isJust $ reach arm p
-
 putWalls :: RandomGen g => LabGen g ()
 putWalls = do
         a <- gets area
@@ -231,19 +226,32 @@ goodReachability = runReader $ do
     let res = map (\p -> M.findWithDefault False p r) pos
     return $ and res
 
-untilMR_ :: MonadState v m => m a -> m Bool -> m ()
-untilMR_ act prop = do
+untilR :: MonadState v m => m Bool -> m a -> m ()
+untilR prop act = do
     v <- get
     untilM_ (put v >> act) prop
 
+untilRN :: MonadState v m => Int -> m Bool -> m a -> m ()
+untilRN 0 _ _ = return ()
+untilRN n prop act = do
+    v <- get
+    act
+    res <- prop
+    if res
+        then return ()
+        else do
+            put v
+            untilRN (n - 1) prop act
+
 generate :: RandomGen g => LabGen g ()
-generate = do
-    putArmories
-    putHospitals
-    putPits
-    (flip untilMR_) (gets goodReachability) $ do
-        putRivers
-        putWalls
+generate = let good = gets goodReachability in do
+    untilR good $ do
+        putArmories
+        putHospitals
+        putPits
+        untilRN 50 good $ do
+            putRivers
+            putWalls
     putTreasures
     putExits
     return ()

@@ -245,13 +245,17 @@ untilRN n prop act = do
 
 generate :: RandomGen g => LabGen g ()
 generate = let good = gets goodReachability in do
-    untilR good $ do
+    untilRN 10 good $ do
         putArmories
         putHospitals
         putPits
         untilRN 50 good $ do
             putRivers
             putWalls
-    putTreasures
-    putExits
-    return ()
+    res <- good
+    if res
+        then do
+        putTreasures
+        putExits
+        return ()
+    else error "cannot generate anything!"

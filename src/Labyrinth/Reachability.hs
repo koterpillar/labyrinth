@@ -39,22 +39,6 @@ reachable pos = do
     npos'' <- forM npos' nextCell
     return $ nub npos''
 
--- Given a set of destinations and a position to start from, return a
--- path to one of them
-reach :: [Position] -> Position -> Reader Labyrinth (Maybe [Position])
-reach dests = reach' dests [] where
-    -- Given a set of destinations, set of visited positions and a position to
-    -- start from, return a path to one of them
-    reach' :: [Position] -> [Position] -> Position -> Reader Labyrinth (Maybe [Position])
-    reach' dests visited pos =
-        if pos `elem` dests then return (Just [pos]) else do
-            npos <- reachable pos
-            let npos' = filter (not . (`elem` visited)) npos
-            let visited' = pos:visited
-            res <- forM npos' $ reach' dests visited'
-            let res' = map (liftM (pos:)) res
-            return $ msum res'
-
 connectivity :: Labyrinth -> Connectivity
 connectivity = runReader $ do
     pos <- asks allPositions
@@ -80,6 +64,11 @@ distribute dist = foldConcat . M.foldWithKey insertAll M.empty
 distributeN :: (Ord k, Monoid v) => Int -> M.Map k [k] -> M.Map k v -> M.Map k v
 distributeN n dist init = foldr distribute init $ replicate n dist
 
+distributeU :: (Ord k, Monoid v, Eq v) => M.Map k [k] -> M.Map k v -> M.Map k v
+distributeU dist init =
+    if next == init then init else distributeU dist next
+    where next = distribute dist init
+
 normalize :: (Fractional v) => M.Map k v -> M.Map k v
 normalize m = M.map norm m
     where norm = (/ s)
@@ -93,6 +82,12 @@ converge n l = normalize $ M.map getSum $ distributeN n conn init
 
 reachConverge :: Int -> Labyrinth -> Reachability
 reachConverge n l = M.map getAny $ distributeN n conn init
+    where conn = inverse $ connectivity l
+          pos = armories l
+          init = uniformBetween (Any True) pos
+
+reachConvergeU :: Labyrinth -> Reachability
+reachConvergeU l = M.map getAny $ distributeU conn init
     where conn = inverse $ connectivity l
           pos = armories l
           init = uniformBetween (Any True) pos

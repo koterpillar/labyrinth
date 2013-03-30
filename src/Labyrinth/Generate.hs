@@ -191,7 +191,6 @@ putWalls = do
                                               , notToOutside
                                               ]
             wall pos d .= Wall
-        return ()
     where
         notRiver dir pos = do
             ct1 <- use $ cell pos . ctype

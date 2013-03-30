@@ -6,7 +6,7 @@ import Control.Lens
 import Control.Monad.Reader
 
 import Data.List
-import Data.Maybe
+import qualified Data.Map as M
 
 import System.Random
 
@@ -89,15 +89,4 @@ no_walls_in_rivers l = and $ map noWall $ filter isRiver $ allPosCells l
           noWall (p, c) = l ^. wall p d == NoWall
               where d = c ^?! (ctype . riverDirection)
 
-reachJoin :: [Position] -> Position -> Reader Labyrinth [Position]
-reachJoin dests pos = do
-    res <- reach dests pos
-    return $ nub $ fromMaybe [] res ++ dests
-
-reachAll :: Reader Labyrinth [Position]
-reachAll = do
-    initial <- asks armories
-    all <- asks allPositions
-    foldM reachJoin initial all
-
-armory_reachable l = allPositions l == (sort $ runReader reachAll l)
+armory_reachable l = allPositions l == (sort $ M.keys $ reachConvergeU l)

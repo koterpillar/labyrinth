@@ -35,14 +35,14 @@ choosePosition = do
     try $ string "choose"
     spaces
     pos <- positionParser
-    return $ ChoosePosition $ pos
+    return $ ChoosePosition pos
 
 reorderCell :: Parser Move
 reorderCell = do
     try $ string "reorder"
     spaces
     pos <- positionParser
-    return $ ReorderCell $ pos
+    return $ ReorderCell pos
 
 positionParser :: Parser Position
 positionParser = do
@@ -52,7 +52,7 @@ positionParser = do
     return $ Pos x y
 
 integer :: Parser Int
-integer = (liftM fromInteger) $ T.integer (T.makeTokenParser emptyDef)
+integer = liftM fromInteger $ T.integer (T.makeTokenParser emptyDef)
 
 actionsParser :: Parser Move
 actionsParser = do

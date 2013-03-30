@@ -65,7 +65,7 @@ instance Ord Position where
         (y1 `compare` y2) `mappend` (x1 `compare` x2)
 
 instance Show Position where
-    show (Pos x y) = "(" ++ (show x) ++ ", " ++ (show y) ++ ")"
+    show (Pos x y) = "(" ++ show x ++ ", " ++ show y ++ ")"
 
 advance :: Position -> Direction -> Position
 advance (Pos x y) L = Pos (x - 1) y
@@ -161,7 +161,7 @@ emptyLabyrinth w h playerCount =
                                , _positionsChosen    = False
                                , _gameEnded          = False
                                }
-    in (flip execState) initialLab $ do
+    in flip execState initialLab $ do
         forM_ [0..w - 1] $ \x -> wall (Pos x 0) U .= HardWall
         forM_ [0..w - 1] $ \x -> wall (Pos x (h - 1)) D .= HardWall
         forM_ [0..h - 1] $ \y -> wall (Pos 0 y) L .= HardWall
@@ -188,7 +188,7 @@ player :: PlayerId -> Simple Lens Labyrinth Player
 player i = players . ix' i
 
 currentPlayer :: Simple Lens Labyrinth Player
-currentPlayer f l = (player i) f l
+currentPlayer f l = player i f l
     where i = l ^?! currentTurn
 
 allPositions :: Labyrinth -> [Position]
@@ -200,7 +200,7 @@ allCells :: Labyrinth -> [Cell]
 allCells l = map (\p -> l ^?! cell p) $ allPositions l
 
 allPosCells :: Labyrinth -> [(Position, Cell)]
-allPosCells l = zipWith (,) (allPositions l) (allCells l)
+allPosCells l = zip (allPositions l) (allCells l)
 
 pitCount :: Labyrinth -> Int
 pitCount = length . filter (isPit . _ctype) . allCells

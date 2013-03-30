@@ -36,9 +36,6 @@ isType ct = isTypeF (ct ==)
 isLand :: Monad m => CellPredicate m
 isLand = isType Land
 
-dotimes :: Monad m => Int -> m a -> m ()
-dotimes n = sequence_ . replicate n
-
 perimeter :: Labyrinth -> Int
 perimeter l = (l ^. labWidth + l ^. labHeight) * 2
 
@@ -46,18 +43,16 @@ area :: Labyrinth -> Int
 area l = l ^. labWidth * l ^. labHeight
 
 chooseRandomR :: RandomGen g => [a] -> LabGen g a
+chooseRandomR [] = error "cannot generate anything!"
 chooseRandomR l = do
-    if length l == 0
-        then error "cannot generate anything!"
-        else do
-            i <- getRandomR (0, length l - 1)
-            return $ l !! i
+    i <- getRandomR (0, length l - 1)
+    return $ l !! i
 
 randomDirection :: RandomGen g => LabGen g Direction
 randomDirection = chooseRandomR allDirections
 
 allOf :: Monad m => [a -> m Bool] -> a -> m Bool
-allOf = flip $ \val -> liftM and . sequence . map ($ val)
+allOf = flip $ \val -> liftM and . mapM ($ val)
 
 cellIf :: RandomGen g => CellPredicateR g -> LabGen g Position
 cellIf prop = do
@@ -92,14 +87,14 @@ isArmoryHospital = isTypeF isAH
           isAH _        = False
 
 putAH :: RandomGen g => CellType -> LabGen g Position
-putAH ct = putCellIf noAHNearby ct
+putAH = putCellIf noAHNearby
     where noAHNearby = allNeighbors $ liftM not . isArmoryHospital
 
 putArmories :: RandomGen g => LabGen g ()
-putArmories = dotimes 2 $ putAH Armory
+putArmories = replicateM_ 2 $ putAH Armory
 
 putHospitals :: RandomGen g => LabGen g ()
-putHospitals = dotimes 2 $ putAH Hospital
+putHospitals = replicateM_ 2 $ putAH Hospital
 
 noTreasures :: Monad m => CellPredicate m
 noTreasures pos = do
@@ -128,8 +123,8 @@ putExits :: RandomGen g => LabGen g ()
 putExits = do
     p <- gets perimeter
     let exits = p `div` 10
-    dotimes exits $ putExit NoWall
-    dotimes exits $ putExit Wall
+    replicateM_ exits $ putExit NoWall
+    replicateM_ exits $ putExit Wall
 
 putPits :: RandomGen g => LabGen g ()
 putPits = do
@@ -150,11 +145,11 @@ putRivers :: RandomGen g => LabGen g ()
 putRivers = do
     a <- gets area
     let deltas = a `div` 12
-    dotimes deltas $ do
+    replicateM_ deltas $ do
         delta <- putCellIf hasLandAround RiverDelta
         riverLen <- getRandomR (2, 5)
         foldTimes_ delta riverLen $ \p -> do
-            landDirs <- filterM ((flip landCellThere) p) allDirections
+            landDirs <- filterM (landCellThere p) allDirections
             if null landDirs
                 then return p
                 else do
@@ -165,11 +160,11 @@ putRivers = do
 
 hasLandAround :: Monad m => CellPredicate m
 hasLandAround pos = do
-    haveLand <- mapM (\d -> landCellThere d pos) allDirections
+    haveLand <- mapM (landCellThere pos) allDirections
     return $ or haveLand
 
-landCellThere :: Monad m => Direction -> CellPredicate m
-landCellThere d p = do
+landCellThere :: Monad m => Position -> Direction -> LabState m Bool
+landCellThere p d = do
     let p2 = advance p d
     inside <- gets $ isInside p2
     if inside
@@ -181,7 +176,7 @@ putTreasures = do
     putTreasure TrueTreasure
     pc <- gets playerCount
     fakeTreasures <- getRandomR (1, pc)
-    dotimes fakeTreasures $ putTreasure FakeTreasure
+    replicateM_ fakeTreasures $ putTreasure FakeTreasure
 
 readProp :: Monad m => (Position -> Reader Labyrinth Bool) -> CellPredicate m
 readProp prop pos = gets $ runReader $ prop pos

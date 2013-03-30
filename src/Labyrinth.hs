@@ -1,14 +1,8 @@
-module Labyrinth ( module Labyrinth.Action
-                 , module Labyrinth.Map
-                 , module Labyrinth.Move
-                 , module Labyrinth.Read
-                 , module Labyrinth.Show
-                 , generateLabyrinth
-                 ) where
+module Labyrinth (generateLabyrinth, module LabyrinthCombined) where
 
-import Labyrinth.Action
-import Labyrinth.Generate
-import Labyrinth.Map
-import Labyrinth.Move
-import Labyrinth.Read
-import Labyrinth.Show
+import Labyrinth.Action as LabyrinthCombined
+import Labyrinth.Generate (generateLabyrinth)
+import Labyrinth.Map as LabyrinthCombined
+import Labyrinth.Move as LabyrinthCombined
+import Labyrinth.Read as LabyrinthCombined
+import Labyrinth.Show as LabyrinthCombined

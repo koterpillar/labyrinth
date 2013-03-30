@@ -30,7 +30,7 @@ onlyWhenChosen act = do
         else act
 
 performMove' :: Move -> State Labyrinth MoveResult
-performMove' (Move actions) = onlyWhenChosen $ do
+performMove' (Move actions) = onlyWhenChosen $
     if length (filter isMovement actions) > 1
         then return InvalidMove
         else do
@@ -51,7 +51,7 @@ performMove' (ChoosePosition pos) = do
         else do
             currentPlayer . position .= pos
             (Just next) <- advancePlayer
-            if (next == 0)
+            if next == 0
                 then do
                     positionsChosen .= True
                     players <- alivePlayers
@@ -138,27 +138,25 @@ transferAmmo_ maxAmount from to = do
 
 pickBullets :: State Labyrinth Int
 pickBullets = do
-    i <- use currentTurn
-    pos <- use $ player i . position
+    pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
     if out
         then return 0
         else transferAmmo
             (Just maxBullets)
             (cell pos . cbullets)
-            (player i . pbullets)
+            (currentPlayer . pbullets)
 
 pickGrenades :: State Labyrinth Int
 pickGrenades = do
-    i <- use currentTurn
-    pos <- use $ player i . position
+    pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
     if out
         then return 0
         else transferAmmo
             (Just maxGrenades)
             (cell pos . cgrenades)
-            (player i . pgrenades)
+            (currentPlayer . pgrenades)
 
 nextPit :: Int -> State Labyrinth Int
 nextPit i = do
@@ -191,21 +189,21 @@ cellActions moved = do
     let npos = fromMaybe pos pos'
     -- If transported, determine the new cell type
     nct <- if isJust pos'
-        then (liftM Just) $ use (cell npos . ctype)
+        then liftM Just $ use (cell npos . ctype)
         else return Nothing
-    let nctr = (fmap ctResult) nct
+    let nctr = fmap ctResult nct
     -- Pick ammo
     cb <- pickBullets
     cg <- pickGrenades
     -- Pick treasures
     ctr <- use (cell npos . ctreasures)
     ptr <- use (currentPlayer . ptreasure)
-    when (ptr == Nothing && length ctr > 0) $ do
+    when (isNothing ptr && length ctr > 0) $ do
         let ctr' = tail ctr
         let ptr' = Just $ head ctr
         cell npos . ctreasures .= ctr'
         currentPlayer . ptreasure .= ptr'
-    return $ (ctResult ct, CellEvents cb cg (length ctr) nctr)
+    return (ctResult ct, CellEvents cb cg (length ctr) nctr)
 
 performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
@@ -268,17 +266,13 @@ performGrenade dir = do
             pickGrenades
             pos <- use (currentPlayer . position)
             out <- gets $ isOutside pos
-            if out then return ()
-                else do
-                    ct <- use (cell pos . ctype)
-                    when (ct == Armory) $
-                        currentPlayer . pgrenades .= maxGrenades
-                    w <- use (wall pos dir)
-                    if w /= HardWall
-                        then do
-                            wall pos dir .= NoWall
-                        else
-                            return ()
+            unless out $ do
+                ct <- use (cell pos . ctype)
+                when (ct == Armory) $
+                    currentPlayer . pgrenades .= maxGrenades
+                w <- use (wall pos dir)
+                when (w /= HardWall) $
+                    wall pos dir .= NoWall
             return $ GrenadeR GrenadeOK
         else
             return $ GrenadeR NoGrenades
@@ -303,7 +297,7 @@ performShoot dir = do
 allPlayers :: State Labyrinth [PlayerId]
 allPlayers = do
     cnt <- gets playerCount
-    return $ [0..cnt - 1]
+    return [0..cnt - 1]
 
 alivePlayers :: State Labyrinth [PlayerId]
 alivePlayers = do
@@ -327,7 +321,7 @@ playerAt pos i = do
     return $ pos == pp
 
 notFallen :: PlayerId -> State Labyrinth Bool
-notFallen i = (liftM not) $ use (player i . pfell)
+notFallen i = liftM not $ use (player i . pfell)
 
 performShootFrom :: Position -> Direction -> State Labyrinth ShootResult
 performShootFrom pos dir = do
@@ -340,17 +334,14 @@ performShootFrom pos dir = do
         else do
             pi <- use currentTurn
             let othersHit = delete pi hit
-            if length othersHit == 0
-                then if outside
+            if null othersHit
+                then if outside || ct == Armory
                     then return ShootOK
                     else do
-                        if ct == Armory
-                            then return ShootOK
-                            else do
-                                w <- use (wall pos dir)
-                                if w == NoWall
-                                    then performShootFrom (advance pos dir) dir
-                                    else return ShootOK
+                        w <- use (wall pos dir)
+                        if w == NoWall
+                            then performShootFrom (advance pos dir) dir
+                            else return ShootOK
                 else do
                     forM_ othersHit $ \i -> do
                         ph <- use (player i . phealth)

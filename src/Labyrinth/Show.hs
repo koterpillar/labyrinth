@@ -34,7 +34,7 @@ instance Show Health where
     show Dead    = "dead"
 
 instance Show Player where
-    show p = execWriter $ (flip runReaderT) p $ do
+    show p = execWriter $ flip runReaderT p $ do
         tell "Player "
         pos <- view position
         tell $ show pos
@@ -51,7 +51,7 @@ instance Show Player where
             tell ", "
             tell $ show h
         f <- view pfell
-        when f $ do
+        when f $
             tell ", fallen"
 
 showH :: Wall -> String
@@ -71,7 +71,7 @@ showWallLine l y = mk ++ intercalate mk ws ++ mk
           ws = map (\x -> showH $ l ^?! wallH (Pos x y)) [0..w - 1]
 
 showCellLine :: Labyrinth -> Int -> String
-showCellLine l y = concat (map (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1])
+showCellLine l y = concatMap (\x -> showVWall l (Pos x y) ++ showCell l (Pos x y)) [0..w - 1]
                        ++ showVWall l (Pos w y)
                    where w = l ^. labWidth
                          showVWall :: Labyrinth -> Position -> String
@@ -83,24 +83,24 @@ showMap :: Labyrinth -> [String]
 showMap l = firstLines ++ [lastLine]
     where h = l ^. labHeight
           showLine l i = [showWallLine l i, showCellLine l i]
-          firstLines = concat $ map (showLine l) [0..h - 1]
+          firstLines = concatMap (showLine l) [0..h - 1]
           lastLine = showWallLine l h
 
 showPlayers :: Labyrinth -> [String]
-showPlayers l = map (uncurry showPlayer) $ zip (l ^. players) [0..]
-    where showPlayer p i = (show i) ++ ": " ++ (show p)
+showPlayers l = zipWith showPlayer (l ^. players) [0..]
+    where showPlayer p i = show i ++ ": " ++ show p
 
 showCurrentPlayer :: Labyrinth -> [String]
 showCurrentPlayer l = ["Current player: " ++ show (l ^. currentTurn)]
 
 showItems :: Labyrinth -> [String]
-showItems = concat . map showCellItemsOn . allPosCells
+showItems = concatMap showCellItemsOn . allPosCells
     where showCellItemsOn (p, c) = if itemStr == "" then [] else [showStr]
               where itemStr = showCellItems c
                     showStr = show p ++ ": " ++ itemStr
 
 showCellItems :: Cell -> String
-showCellItems c = intercalate ", " $ execWriter $ (flip runReaderT) c $ do
+showCellItems c = intercalate ", " $ execWriter $ flip runReaderT c $ do
     b <- view cbullets
     when (b > 0) $ tell [show b ++ "B"]
     g <- view cgrenades
@@ -109,9 +109,9 @@ showCellItems c = intercalate ", " $ execWriter $ (flip runReaderT) c $ do
     tell $ map show t
 
 showStatus :: Labyrinth -> [String]
-showStatus l = execWriter $ (flip runReaderT) l $ do
+showStatus l = execWriter $ flip runReaderT l $ do
     pc <- view positionsChosen
-    when (not pc) $ tell ["Positions not chosen"]
+    unless pc $ tell ["Positions not chosen"]
     end <- view gameEnded
     when end $ tell ["Game ended"]
 
@@ -136,9 +136,9 @@ instance Show MoveDirection where
     show Next = "next"
 
 instance Show Action where
-    show (Go d) = "go " ++ (show d)
-    show (Shoot d) = "shoot " ++ (show d)
-    show (Grenade d) = "grenade " ++ (show d)
+    show (Go d) = "go " ++ show d
+    show (Shoot d) = "shoot " ++ show d
+    show (Grenade d) = "grenade " ++ show d
 
 instance Show Move where
     show (Move [])          = "skip"
@@ -159,7 +159,7 @@ instance Show CellEvents where
             let transported = r ^. transportedTo
             when (isJust transported) $ do
                 tell ", was transported to "
-                tell $ show $ fromJust $ transported
+                tell $ show $ fromJust transported
             let b = r ^. foundBullets
             let g = r ^. foundGrenades
             let t = r ^. foundTreasures
@@ -169,11 +169,11 @@ instance Show CellEvents where
                 tell $
                     commaList $
                     map (uncurry pluralize) $
-                    filter ((0 <) . fst) $
+                    filter ((0 <) . fst)
                     [(b, "bullet"), (g, "grenade"), (t, "treasure")]
             return ()
         where pluralize 1 str = "a " ++ str
-              pluralize n str = (show n) ++ " " ++ str ++ "s"
+              pluralize n str = show n ++ " " ++ str ++ "s"
               commaList [] = ""
               commaList [x] = x
               commaList xs = intercalate ", " (take (n - 1) xs)
@@ -210,7 +210,7 @@ instance Show StartResult where
 
 instance Show ChoosePositionResult where
     show ChosenOK          = "position chosen"
-    show (AllChosenOK pos) = "game started; " ++ (intercalate "; " $ map show pos)
+    show (AllChosenOK pos) = "game started; " ++ intercalate "; " (map show pos)
     show ChooseAgain       = "positions chosen invalid, choose again"
 
 instance Show ReorderCellResult where

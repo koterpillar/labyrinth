@@ -50,7 +50,7 @@ derive makeTypeable ''MoveResult
 
 type GameId = String
 
-data MoveRecord = MoveRecord { _rplayer :: Int
+data MoveRecord = MoveRecord { _rplayer :: PlayerId
                              , _rmove :: Move
                              , _rresult :: MoveResult
                              }
@@ -64,7 +64,7 @@ derive makeTypeable ''MoveRecord
 type MoveLog = [MoveRecord]
 
 logMoveResult :: MoveRecord -> State MoveLog ()
-logMoveResult m = modify (\l -> l ++ [m])
+logMoveResult m = modify (++ [m])
 
 data Game = Game { _labyrinth :: Labyrinth
                  , _moves :: MoveLog
@@ -90,7 +90,7 @@ game :: GameId -> Simple Traversal Games Game
 game gid = games . ix gid
 
 gameList :: Query Games [GameId]
-gameList = view games >>= return . M.keys
+gameList = liftM M.keys $ view games
 
 stateUpdate :: State x y -> Update x y
 stateUpdate f = do
@@ -108,20 +108,14 @@ addGame gid lab = stateUpdate $ zoom games $ do
             modify $ M.insert gid $ newGame lab
             return True
 
+getGame :: GameId -> Query Games Game
+getGame = view . singular . game
+
 performMove :: GameId -> PlayerId -> Move -> Update Games MoveResult
 performMove g p m = stateUpdate $ zoom (singular $ game g) $ do
     r <- zoom labyrinth $ L.performMove p m
     zoom moves $ logMoveResult $ MoveRecord p m r
     return r
-
-currentTurn :: GameId -> Query Games Int
-currentTurn g = view $ (singular $ game g) . labyrinth . L.currentTurn
-
-gameLog :: GameId -> Query Games MoveLog
-gameLog g = view $ game g . moves
-
-showLabyrinth :: GameId -> Query Games Labyrinth
-showLabyrinth g = view (singular $ game g . labyrinth)
 
 deriveSafeCopy 0 'base ''Games
 
@@ -129,10 +123,8 @@ derive makeTypeable ''Games
 
 makeAcidic ''Games [ 'gameList
                    , 'addGame
+                   , 'getGame
                    , 'performMove
-                   , 'currentTurn
-                   , 'gameLog
-                   , 'showLabyrinth
                    ]
 
 logJSON :: MoveLog -> JSValue

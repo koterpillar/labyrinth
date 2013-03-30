@@ -1,6 +1,7 @@
 module Main where
 
 import Control.Exception (bracket)
+import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 
@@ -31,7 +32,7 @@ createLabyrinth w h n = do
     return l
 
 newId :: (MonadIO m) => m String
-newId = sequence $ take 32 $ repeat $ liftIO $ randomRIO ('a', 'z')
+newId = sequence $ replicate 32 $ liftIO $ randomRIO ('a', 'z')
 
 getPort :: IO Int
 getPort = do
@@ -46,7 +47,7 @@ main = do
     port <- getPort
     let conf = nullConf { port = port }
     bracket (openLocalState noGames)
-        (createCheckpointAndClose)
+        createCheckpointAndClose
         (simpleHTTP conf . myApp)
 
 myApp :: AcidState Games -> ServerPart Response
@@ -84,18 +85,18 @@ createGame acid = dir "add" $ nullDir >> method POST >> do
 
 listGames :: AcidState Games -> ServerPart Response
 listGames acid = dir "list" $ nullDir >> do
-    games <- query' acid $ GameList
+    games <- query' acid GameList
     ok $ toResponse $ J.encode $ gameListJSON games
 
 cheat :: AcidState Games -> GameId -> ServerPart Response
 cheat acid gameId = dir "cheat" $ nullDir >> do
-    l <- query' acid $ ShowLabyrinth gameId
-    ok $ toResponse $ show l
+    g <- query' acid $ GetGame gameId
+    ok $ toResponse $ show $ g ^. labyrinth
 
 showLog :: AcidState Games -> GameId -> ServerPart Response
 showLog acid gameId = dir "log" $ nullDir >> do
-    l <- query' acid $ GameLog gameId
-    ok $ toResponse $ J.encode $ logJSON l
+    g <- query' acid $ GetGame gameId
+    ok $ toResponse $ J.encode $ logJSON $ g ^. moves
 
 makeMove :: AcidState Games -> GameId -> ServerPart Response
 makeMove acid gameId = dir "move" $ nullDir >> method POST >> do

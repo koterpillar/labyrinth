@@ -33,7 +33,7 @@ nextCell pos = do
 -- A list of positions player can go from a given cell
 reachable :: Position -> Reader Labyrinth [Position]
 reachable pos = do
-    dirs <- filterM (\d -> liftM (NoWall ==) . view $ wall pos d) allDirections
+    dirs <- filterM (liftM (NoWall ==) . view . wall pos) allDirections
     let npos = pos : map (advance pos) dirs
     npos' <- filterM (asks . isInside) npos
     npos'' <- forM npos' nextCell
@@ -67,14 +67,14 @@ insertAppend k v = M.alter (addToList v) k
 
 inverse :: (Ord a, Ord b) => M.Map a [b] -> M.Map b [a]
 inverse = M.foldWithKey insertAll M.empty
-    where insertAll k vs m = foldr ((flip insertAppend) k) m vs
+    where insertAll k vs m = foldr (flip insertAppend k) m vs
 
 foldConcat :: (Monoid v) => M.Map k [v] -> M.Map k v
 foldConcat = M.map mconcat
 
 distribute :: (Ord k, Monoid v) => M.Map k [k] -> M.Map k v -> M.Map k v
 distribute dist = foldConcat . M.foldWithKey insertAll M.empty
-    where insertAll k v m = foldr ((flip insertAppend) v) m k2s
+    where insertAll k v m = foldr (flip insertAppend v) m k2s
               where k2s = M.findWithDefault [] k dist
 
 distributeN :: (Ord k, Monoid v) => Int -> M.Map k [k] -> M.Map k v -> M.Map k v
@@ -101,7 +101,7 @@ uniformBetween :: a -> [Position] -> PositionMap a
 uniformBetween x pos = M.fromList $ zip pos $ repeat x
 
 armoriesDist :: Reader Labyrinth Reachability
-armoriesDist = asks armories >>= return . uniformBetween True
+armoriesDist = liftM (uniformBetween True) $ asks armories
 
 maxKeyBy :: (Ord n) => (k -> n) -> M.Map k a -> n
 maxKeyBy prop = maximum . M.keys . M.mapKeys prop
@@ -117,11 +117,11 @@ showDist = showGrid showDistValue
     where showDistValue = pad 2 ' ' . show . round . (100 *) . fromMaybe 0
 
 showGrid :: (Maybe a -> String) -> PositionMap a -> String
-showGrid s g = intercalate "\n" $ (flip map) [0..maxY] $ showGridLine s g
+showGrid s g = intercalate "\n" $ flip map [0..maxY] $ showGridLine s g
     where maxY = maxKeyBy pY g
 
 showGridLine :: (Maybe a -> String) -> PositionMap a -> Int -> String
-showGridLine s g y = intercalate " " $ (flip map) [0..maxX] $ showGridPos s g y
+showGridLine s g y = unwords $ flip map [0..maxX] $ showGridPos s g y
     where maxX = maxKeyBy pX g
 
 showGridPos :: (Maybe a -> String) -> PositionMap a -> Int -> Int -> String

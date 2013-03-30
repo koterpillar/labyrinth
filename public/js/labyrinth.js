@@ -2,6 +2,10 @@ $(document).ready(function () {
     var gameId = null;
     var gameLength = 0;
 
+    function privateMove(move) {
+        return /^(choose|reorder)/.test(move);
+    }
+
     function refreshGames(noTimer) {
         $.getJSON('/list', function (result) {
             var list = $('#games');
@@ -79,15 +83,52 @@ $(document).ready(function () {
         $('#history').append(line + '<br />');
     }
 
+    function randomPercent() {
+        var val = Math.random() * 100;
+        return Math.round(val) + '%';
+    }
+
+    var obscureMoveDiv = null;
+    function obscureMove() {
+        var input = $('#make_move_move');
+        var move = input.val();
+        if (privateMove(input.val())) {
+            if (obscureMoveDiv == null) {
+                obscureMoveDiv = $('<div />');
+                obscureMoveDiv.addClass('obscureMove');
+                $('#make_move').after(obscureMoveDiv);
+                obscureMoveDiv.offset(input.offset());
+                obscureMoveDiv.width(input.outerWidth());
+                obscureMoveDiv.height(input.outerHeight());
+            }
+            obscureMoveDiv.css('background-position',
+                randomPercent() + ' ' + randomPercent());
+        } else {
+            if (obscureMoveDiv != null) {
+                obscureMoveDiv.remove();
+                obscureMoveDiv = null;
+            }
+        }
+    }
+
+    $('#make_move_move').keydown(obscureMove);
+    $('#make_move_move').keyup(obscureMove);
+    $('#make_move_move').change(obscureMove);
+
     $('#make_move').submit(function () {
         var form = $(this);
         var data = form.serialize();
-        addLine($('#make_move_player').val() + " > " + $('#make_move_move').val());
+        var move = $('#make_move_move').val();
+        if (privateMove(move)) {
+            move = '***';
+        }
+        addLine($('#make_move_player').val() + " > " + move);
         scrollDown();
         $.post('/' + gameId + '/move', data, function (result) {
             addLine(result);
-            $('#move').val('');
-            $('#move').focus();
+            $('#make_move_move').val('');
+            obscureMove();
+            $('#make_move_move').focus();
             scrollDown();
         });
         return false;

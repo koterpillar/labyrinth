@@ -83,20 +83,18 @@ converge n l = normalize $ M.map getSum $ distributeN n conn init
 reachConverge :: Int -> Labyrinth -> Reachability
 reachConverge n l = M.map getAny $ distributeN n conn init
     where conn = inverse $ connectivity l
-          pos = armories l
-          init = uniformBetween (Any True) pos
+          init = armoriesDist l
 
 reachConvergeU :: Labyrinth -> Reachability
 reachConvergeU l = M.map getAny $ distributeU conn init
     where conn = inverse $ connectivity l
-          pos = armories l
-          init = uniformBetween (Any True) pos
+          init = armoriesDist l
 
 uniformBetween :: a -> [Position] -> PositionMap a
 uniformBetween x pos = M.fromList $ zip pos $ repeat x
 
-armoriesDist :: Reader Labyrinth Reachability
-armoriesDist = liftM (uniformBetween True) $ asks armories
+armoriesDist :: Labyrinth -> PositionMap Any
+armoriesDist = uniformBetween (Any True) . armories
 
 maxKeyBy :: (Ord n) => (k -> n) -> M.Map k a -> n
 maxKeyBy prop = maximum . M.keys . M.mapKeys prop

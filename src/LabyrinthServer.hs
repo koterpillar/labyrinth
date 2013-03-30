@@ -32,7 +32,7 @@ createLabyrinth w h n = do
     return l
 
 newId :: (MonadIO m) => m String
-newId = sequence $ replicate 32 $ liftIO $ randomRIO ('a', 'z')
+newId = replicateM 32 $ liftIO $ randomRIO ('a', 'z')
 
 getPort :: IO Int
 getPort = do

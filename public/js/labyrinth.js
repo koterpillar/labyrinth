@@ -6,8 +6,11 @@ $(document).ready(function () {
         $.getJSON('/list', function (result) {
             var list = $('#games');
             list.html('');
-            $.each(result, function (i, game) {
-                var link = $('<a href="/">' + game + '</a>');
+            $.each(result, function (game, details) {
+                var desc = game + " - " +
+                    details.width + "x" + details.height + ", " +
+                    details.players + " players";
+                var link = $('<a href="/">' + desc + '</a>');
                 link.click(function () {
                     gameId = game;
                     return false;

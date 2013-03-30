@@ -85,7 +85,7 @@ createGame acid = dir "add" $ nullDir >> method POST >> do
 
 listGames :: AcidState Games -> ServerPart Response
 listGames acid = dir "list" $ nullDir >> do
-    games <- query' acid GameList
+    games <- query' acid GetGames
     ok $ toResponse $ J.encode $ gameListJSON games
 
 cheat :: AcidState Games -> GameId -> ServerPart Response

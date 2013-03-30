@@ -89,8 +89,8 @@ makeLenses ''Games
 game :: GameId -> Simple Traversal Games Game
 game gid = games . ix gid
 
-gameList :: Query Games [GameId]
-gameList = liftM M.keys $ view games
+getGames :: Query Games Games
+getGames = ask
 
 stateUpdate :: State x y -> Update x y
 stateUpdate f = do
@@ -121,7 +121,7 @@ deriveSafeCopy 0 'base ''Games
 
 derive makeTypeable ''Games
 
-makeAcidic ''Games [ 'gameList
+makeAcidic ''Games [ 'getGames
                    , 'addGame
                    , 'getGame
                    , 'performMove
@@ -129,16 +129,20 @@ makeAcidic ''Games [ 'gameList
 
 logJSON :: MoveLog -> JSValue
 logJSON g = JSArray $ map moveJSON g
-    where moveJSON l = JSObject $ toJSObject [ ("player", jsInt p)
-                                             , ("move", jsShow m)
-                                             , ("result", jsShow r)
+    where moveJSON l = JSObject $ toJSObject [ ("player", jsInt $ l ^. rplayer)
+                                             , ("move", jsShow $ l ^. rmove)
+                                             , ("result", jsShow $ l ^. rresult)
                                              ]
-            where p = l ^. rplayer
-                  m = l ^. rmove
-                  r = l ^. rresult
 
-gameListJSON :: [GameId] -> JSValue
-gameListJSON = JSArray . map (JSString . toJSString)
+gameInfoJSON :: Game -> JSValue
+gameInfoJSON g = JSObject $ toJSObject [ ("width", jsInt $ l ^. labWidth)
+                                       , ("height", jsInt $ l ^. labHeight)
+                                       , ("players", jsInt $ playerCount l)
+                                       ]
+    where l = g ^. labyrinth
+
+gameListJSON :: Games -> JSValue
+gameListJSON = JSObject . toJSObject . M.toList . M.map gameInfoJSON . view games
 
 jsInt :: Int -> JSValue
 jsInt = JSRational False . fromIntegral

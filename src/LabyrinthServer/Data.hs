@@ -15,7 +15,7 @@ import Data.Typeable
 
 import Text.JSON
 
-import Labyrinth hiding (performMove, currentTurn)
+import Labyrinth hiding (performMove)
 import qualified Labyrinth as L
 
 deriveSafeCopy 0 'base ''Direction
@@ -129,20 +129,28 @@ makeAcidic ''Games [ 'getGames
 
 logJSON :: MoveLog -> JSValue
 logJSON g = JSArray $ map moveJSON g
-    where moveJSON l = JSObject $ toJSObject [ ("player", jsInt $ l ^. rplayer)
-                                             , ("move", jsShow $ l ^. rmove)
-                                             , ("result", jsShow $ l ^. rresult)
-                                             ]
+    where moveJSON l = jsObject [ ("player", jsInt $ l ^. rplayer)
+                                , ("move", jsShow $ l ^. rmove)
+                                , ("result", jsShow $ l ^. rresult)
+                                ]
 
 gameInfoJSON :: Game -> JSValue
-gameInfoJSON g = JSObject $ toJSObject [ ("width", jsInt $ l ^. labWidth)
-                                       , ("height", jsInt $ l ^. labHeight)
-                                       , ("players", jsInt $ playerCount l)
-                                       ]
+gameInfoJSON g = jsObject [ ("width", jsInt $ l ^. labWidth)
+                          , ("height", jsInt $ l ^. labHeight)
+                          , ("players", jsInt $ playerCount l)
+                          , ("currentTurn", jsInt $ l ^. currentTurn)
+                          ]
     where l = g ^. labyrinth
 
 gameListJSON :: Games -> JSValue
-gameListJSON = JSObject . toJSObject . M.toList . M.map gameInfoJSON . view games
+gameListJSON = jsObject . M.toList . M.map gameInfoJSON . view games
+
+gameJSON :: Game -> JSValue
+gameJSON g = jsObject [("game", gameInfoJSON g), ("log", logJSON m)]
+    where m = g ^. moves
+
+jsObject :: [(String, JSValue)] -> JSValue
+jsObject = JSObject . toJSObject
 
 jsInt :: Int -> JSValue
 jsInt = JSRational False . fromIntegral

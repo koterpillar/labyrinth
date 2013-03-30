@@ -44,8 +44,9 @@ $(document).ready(function () {
             $('#games_container').hide();
             $.getJSON('/' + gameId + '/log', function (result) {
                 var str = "";
-                for (var i = 0; i < result.length; i++) {
-                    var move = result[i];
+                var log = result.log;
+                for (var i = 0; i < log.length; i++) {
+                    var move = log[i];
                     str += move.player + " > " + move.move + "<br />";
                     str += move.result + "<br />";
                 }
@@ -54,6 +55,9 @@ $(document).ready(function () {
                     scrollDown();
                 }
                 gameLength = result.length;
+                if ($('#make_move_hotseat').is(':checked')) {
+                    $('#make_move_player').val(result.game.currentTurn);
+                }
             });
         } else {
             $('#game').hide();

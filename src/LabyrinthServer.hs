@@ -96,7 +96,7 @@ cheat acid gameId = dir "cheat" $ nullDir >> do
 showLog :: AcidState Games -> GameId -> ServerPart Response
 showLog acid gameId = dir "log" $ nullDir >> do
     g <- query' acid $ GetGame gameId
-    ok $ toResponse $ J.encode $ logJSON $ g ^. moves
+    ok $ toResponse $ J.encode $ gameJSON g
 
 makeMove :: AcidState Games -> GameId -> ServerPart Response
 makeMove acid gameId = dir "move" $ nullDir >> method POST >> do

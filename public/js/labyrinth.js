@@ -55,9 +55,12 @@ $(document).ready(function () {
                     scrollDown();
                 }
                 gameLength = result.length;
-                if ($('#make_move_hotseat').is(':checked')) {
-                    $('#make_move_player').val(result.game.currentTurn);
+                var player_input = $('#make_move_player');
+                if (player_input.val() === "" ||
+                    $('#make_move_hotseat').is(':checked')) {
+                    player_input.val(result.game.currentTurn);
                 }
+                player_input.attr('max', result.game.players - 1);
             });
         } else {
             $('#game').hide();

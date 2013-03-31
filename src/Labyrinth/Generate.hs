@@ -144,7 +144,7 @@ foldTimes_ init times func = do
 putRivers :: RandomGen g => LabGen g ()
 putRivers = do
     a <- gets area
-    let deltas = a `div` 12
+    deltas <- getRandomR (a `div` 12, a `div` 8)
     replicateM_ deltas $ do
         delta <- putCellIf hasLandAround RiverDelta
         riverLen <- getRandomR (2, 5)

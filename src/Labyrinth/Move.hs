@@ -9,10 +9,18 @@ import Labyrinth.Map
 data MoveDirection = Towards Direction | Next
                    deriving (Eq)
 
-data Action = Go MoveDirection
-            | Shoot Direction
-            | Grenade Direction
+type ActionCondition = String
+
+data Action = Go { _amdirection :: MoveDirection }
+            | Shoot { _asdirection :: Direction }
+            | Grenade { _agdirection :: Direction }
+            | Conditional { _acif   :: ActionCondition
+                          , _acthen :: [Action]
+                          , _acelse :: [Action]
+                          }
             deriving (Eq)
+
+makeLenses ''Action
 
 goTowards :: Direction -> Action
 goTowards = Go . Towards

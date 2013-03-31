@@ -178,9 +178,6 @@ putTreasures = do
     fakeTreasures <- getRandomR (1, pc)
     replicateM_ fakeTreasures $ putTreasure FakeTreasure
 
-readProp :: Monad m => (Position -> Reader Labyrinth Bool) -> CellPredicate m
-readProp prop pos = gets $ runReader $ prop pos
-
 putWalls :: RandomGen g => LabGen g ()
 putWalls = do
         a <- gets area

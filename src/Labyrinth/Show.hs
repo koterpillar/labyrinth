@@ -135,14 +135,21 @@ instance Show MoveDirection where
     show (Towards d) = show d
     show Next = "next"
 
+showActs :: [Action] -> String
+showActs = intercalate ", " . map show
+
 instance Show Action where
     show (Go d) = "go " ++ show d
     show (Shoot d) = "shoot " ++ show d
     show (Grenade d) = "grenade " ++ show d
+    show (Conditional cif cthen celse) =
+        "if " ++ cif ++ ": " ++ showActs cthen ++ showElse celse ++ ", fi"
+        where showElse [] = ""
+              showElse x  = ", else: " ++ showActs x
 
 instance Show Move where
     show (Move [])          = "skip"
-    show (Move acts)        = intercalate ", " $ map show acts
+    show (Move acts)        = showActs acts
     show (ChoosePosition _) = "[choose position]"
     show (ReorderCell _)    = "[reorder cell]"
 

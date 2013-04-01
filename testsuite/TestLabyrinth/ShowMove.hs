@@ -5,6 +5,7 @@ module TestLabyrinth.ShowMove (htf_thisModulesTests) where
 
 import Labyrinth
 
+import Control.Applicative
 import Control.Monad
 
 import Data.DeriveTH
@@ -27,6 +28,10 @@ test_show_move = do
         Move [Go Next]
     assertShowEquals "shoot left, go up, grenade left" $
         Move [Shoot L, goTowards U, Grenade L]
+    assertShowEquals "go left, if hit a wall: shoot up, else: shoot down, fi" $
+        Move [goTowards L, Conditional "hit a wall" [Shoot U] [Shoot D]]
+    assertShowEquals "go left, if hit a wall: shoot up, fi" $
+        Move [goTowards L, Conditional "hit a wall" [Shoot U] []]
 
 test_show_move_result = do
     assertShowEquals "ok" $
@@ -50,7 +55,20 @@ test_show_move_result = do
 
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection
-derive makeArbitrary ''Action
+
+arbitrary' = oneof [ Go <$> arbitrary
+                   , Shoot <$> arbitrary
+                   , Grenade <$> arbitrary
+                   ]
+
+instance Arbitrary Action where
+    arbitrary = oneof [ arbitrary'
+                      , Conditional
+                            <$> arbitrary
+                            <*> listOf arbitrary'
+                            <*> listOf arbitrary'
+                      ]
+
 derive makeArbitrary ''Position
 derive makeArbitrary ''Move
 derive makeArbitrary ''CellTypeResult

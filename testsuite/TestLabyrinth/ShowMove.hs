@@ -28,9 +28,9 @@ test_show_move = do
         Move [Go Next]
     assertShowEquals "shoot left, go up, grenade left" $
         Move [Shoot L, goTowards U, Grenade L]
-    assertShowEquals "go left, if hit a wall: shoot up, else: shoot down, fi" $
+    assertShowEquals "go left, if hit a wall { shoot up } else { shoot down }" $
         Move [goTowards L, Conditional "hit a wall" [Shoot U] [Shoot D]]
-    assertShowEquals "go left, if hit a wall: shoot up, fi" $
+    assertShowEquals "go left, if hit a wall { shoot up }" $
         Move [goTowards L, Conditional "hit a wall" [Shoot U] []]
 
 test_show_move_result = do
@@ -64,7 +64,7 @@ arbitrary' = oneof [ Go <$> arbitrary
 instance Arbitrary Action where
     arbitrary = oneof [ arbitrary'
                       , Conditional
-                            <$> arbitrary
+                            <$> return "condition"
                             <*> listOf arbitrary'
                             <*> listOf arbitrary'
                       ]

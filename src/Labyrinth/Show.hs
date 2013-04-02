@@ -143,9 +143,9 @@ instance Show Action where
     show (Shoot d) = "shoot " ++ show d
     show (Grenade d) = "grenade " ++ show d
     show (Conditional cif cthen celse) =
-        "if " ++ cif ++ ": " ++ showActs cthen ++ showElse celse ++ ", fi"
+        "if " ++ cif ++ " { " ++ showActs cthen ++ showElse celse ++ " }"
         where showElse [] = ""
-              showElse x  = ", else: " ++ showActs x
+              showElse x  = " } else { " ++ showActs x
 
 instance Show Move where
     show (Move [])          = "skip"

@@ -23,7 +23,10 @@ stringResult s v = do
 moveParser :: Parser Move
 moveParser = do
     spaces
-    emptyMove <|> choosePosition <|> reorderCell <|> actionsParser
+    m <- emptyMove <|> choosePosition <|> reorderCell <|> liftM Move actions
+    spaces
+    eof
+    return m
 
 emptyMove :: Parser Move
 emptyMove = do
@@ -54,11 +57,8 @@ positionParser = do
 integer :: Parser Int
 integer = liftM fromInteger $ T.integer (T.makeTokenParser emptyDef)
 
-actionsParser :: Parser Move
-actionsParser = do
-    actions <- sepBy1 action (char ',')
-    eof
-    return $ Move actions
+actions :: Parser [Action]
+actions = sepBy1 action (char ',')
 
 action :: Parser Action
 action = do
@@ -66,6 +66,7 @@ action = do
     choice $ map try [ goAction
                      , grenadeAction
                      , shootAction
+                     , conditionalAction
                      ]
 
 goAction :: Parser Action
@@ -100,3 +101,27 @@ direction = choice [ stringResult "left" L
                    , stringResult "up" U
                    , stringResult "down" D
                    ]
+
+conditionalPart :: Parser [Action]
+conditionalPart = do
+    spaces
+    a <- sepBy action $ char ','
+    spaces
+    char '}'
+    return a
+
+conditionalAction :: Parser Action
+conditionalAction = do
+    string "if"
+    spaces
+    ifPart <- manyTill (satisfy ('{' /=)) $ try openBracket
+    thenPart <- conditionalPart
+    spaces
+    elsePart <- choice [ do
+                             string "else"
+                             openBracket
+                             conditionalPart
+                       , return []
+                       ]
+    return $ Conditional ifPart thenPart elsePart
+        where openBracket = spaces >> char '{'

@@ -12,11 +12,15 @@ import Data.Tuple
 import Labyrinth.Common
 import Labyrinth.Map
 import Labyrinth.Move
+import Labyrinth.Show
 
 type ActionState a = LabState (State [ActionResult]) a
 
 putActionResult :: ActionResult -> ActionState ()
 putActionResult r = lift $ modify $ (++[r])
+
+matchActionResult :: String -> ActionState Bool
+matchActionResult str = lift $ gets $ any (isInfixOf str . show)
 
 performMove :: PlayerId -> Move -> State Labyrinth MoveResult
 performMove pi move = do
@@ -116,9 +120,10 @@ alwaysContinue rest act = do
 performActions :: [Action] -> ActionState ()
 performActions [] = return ()
 performActions (act:rest) = case act of
-    Go dir      -> performMovement dir rest
-    Grenade dir -> alwaysContinue rest $ performGrenade dir
-    Shoot dir   -> alwaysContinue rest $ performShoot dir
+    Go dir                   -> performMovement dir rest
+    Grenade dir              -> alwaysContinue rest $ performGrenade dir
+    Shoot dir                -> alwaysContinue rest $ performShoot dir
+    cond@(Conditional _ _ _) -> performConditional cond rest
 
 type AmmoLocation = Simple Lens Labyrinth Int
 
@@ -361,3 +366,9 @@ performShootFrom pos dir = do
                                 else transferAmmo_ Nothing (player i . pgrenades) (cell pos . cgrenades)
                             player i . phealth .= Dead
                     return Scream
+
+performConditional :: Action -> [Action] -> ActionState ()
+performConditional (Conditional cif cthen celse) rest = do
+    match <- matchActionResult cif
+    let branch = if match then cthen else celse
+    performActions $ branch ++ rest

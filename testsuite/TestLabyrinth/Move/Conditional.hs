@@ -24,7 +24,8 @@ test_condition_false = do
     assertMoveUpdates'
         empty_labyrinth
         (Move [goTowards R, Conditional "hit a wall" [Shoot D] [Grenade D]])
-        (MoveRes [GoR $ HitWall noEvents, GrenadeR GrenadeOK])
+        (MoveRes [GoR $ Went LandR noEvents, GrenadeR GrenadeOK])
         $ do
             currentTurn .= 1
+            (player 0 . position) .= Pos 1 0
             (player 0 . pgrenades) .= 2

@@ -7,9 +7,16 @@ import Control.Monad.State
 
 import Data.List
 import Data.Maybe
+import Data.Tuple
 
+import Labyrinth.Common
 import Labyrinth.Map
 import Labyrinth.Move
+
+type ActionState a = LabState (State [ActionResult]) a
+
+putActionResult :: ActionResult -> ActionState ()
+putActionResult r = lift $ modify $ (++[r])
 
 performMove :: PlayerId -> Move -> State Labyrinth MoveResult
 performMove pi move = do
@@ -35,7 +42,7 @@ performMove' (Move actions) = onlyWhenChosen $
         then return InvalidMove
         else do
             currentPlayer . pfell .= False
-            actionRes <- performActions actions
+            actionRes <- state $ \s -> swap $ runState (execStateT (performActions actions) s) []
             next <- advancePlayer
             if isJust next
                 then return $ MoveRes actionRes
@@ -96,21 +103,18 @@ isMovement :: Action -> Bool
 isMovement (Go _) = True
 isMovement _ = False
 
-returnContinue :: [Action] -> ActionResult -> State Labyrinth [ActionResult]
+returnContinue :: [Action] -> ActionResult -> ActionState ()
 returnContinue rest res = do
-    restRes <- performActions rest
-    return $ res:restRes
+    putActionResult res
+    performActions rest
 
-returnStop :: ActionResult -> State Labyrinth [ActionResult]
-returnStop = return . (:[])
-
-alwaysContinue :: [Action] -> State Labyrinth ActionResult -> State Labyrinth [ActionResult]
+alwaysContinue :: [Action] -> ActionState ActionResult -> ActionState ()
 alwaysContinue rest act = do
     res <- act
     returnContinue rest res
 
-performActions :: [Action] -> State Labyrinth [ActionResult]
-performActions [] = return []
+performActions :: [Action] -> ActionState ()
+performActions [] = return ()
 performActions (act:rest) = case act of
     Go dir      -> performMovement dir rest
     Grenade dir -> alwaysContinue rest $ performGrenade dir
@@ -118,7 +122,7 @@ performActions (act:rest) = case act of
 
 type AmmoLocation = Simple Lens Labyrinth Int
 
-transferAmmo :: Maybe Int -> AmmoLocation -> AmmoLocation -> State Labyrinth Int
+transferAmmo :: Monad m => Maybe Int -> AmmoLocation -> AmmoLocation -> LabState m Int
 transferAmmo maxAmount from to = do
     found <- use from
     has <- use to
@@ -131,12 +135,12 @@ transferAmmo maxAmount from to = do
     to .= has'
     return found
 
-transferAmmo_ :: Maybe Int -> AmmoLocation -> AmmoLocation -> State Labyrinth ()
+transferAmmo_ :: Monad m => Maybe Int -> AmmoLocation -> AmmoLocation -> LabState m ()
 transferAmmo_ maxAmount from to = do
     transferAmmo maxAmount from to
     return ()
 
-pickBullets :: State Labyrinth Int
+pickBullets :: Monad m => LabState m Int
 pickBullets = do
     pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
@@ -147,7 +151,7 @@ pickBullets = do
             (cell pos . cbullets)
             (currentPlayer . pbullets)
 
-pickGrenades :: State Labyrinth Int
+pickGrenades :: Monad m => LabState m Int
 pickGrenades = do
     pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
@@ -158,12 +162,12 @@ pickGrenades = do
             (cell pos . cgrenades)
             (currentPlayer . pgrenades)
 
-nextPit :: Int -> State Labyrinth Int
+nextPit :: Monad m => Int -> LabState m Int
 nextPit i = do
     npits <- gets pitCount
     return $ (i + 1) `mod` npits
 
-cellActions :: Bool -> State Labyrinth (CellTypeResult, CellEvents)
+cellActions :: Monad m => Bool -> LabState m (CellTypeResult, CellEvents)
 cellActions moved = do
     pos <- use (currentPlayer . position)
     ct <- use (cell pos . ctype)
@@ -205,7 +209,7 @@ cellActions moved = do
         currentPlayer . ptreasure .= ptr'
     return (ctResult ct, CellEvents cb cg (length ctr) nctr)
 
-performMovement :: MoveDirection -> [Action] -> State Labyrinth [ActionResult]
+performMovement :: MoveDirection -> [Action] -> ActionState ()
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
     pos <- use (currentPlayer . position)
     let pos' = advance pos dir
@@ -216,7 +220,7 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
             currentPlayer . phealth .= Dead
             currentPlayer . pbullets .= 0
             currentPlayer . pgrenades .= 0
-            returnStop $ GoR LostOutside
+            putActionResult $ GoR LostOutside
         else do
             w <- use (wall pos dir)
             if w == NoWall
@@ -233,7 +237,7 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
                                 (Just TrueTreasure) -> do
                                     currentPlayer . ptreasure .= Nothing
                                     gameEnded .= True
-                                    returnStop $ GoR $ WentOutside $ Just TrueTreasureR
+                                    putActionResult $ GoR $ WentOutside $ Just TrueTreasureR
                         else do
                             (ct, cr) <- cellActions True
                             returnCont $ GoR $ Went ct cr
@@ -257,7 +261,7 @@ performMovement Next rest = alwaysContinue rest $ liftM GoR $ do
                     return $ Went ct cr
                 _ -> return InvalidMovement
 
-performGrenade :: Direction -> State Labyrinth ActionResult
+performGrenade :: Direction -> ActionState ActionResult
 performGrenade dir = do
     g <- use (currentPlayer . pgrenades)
     if g > 0
@@ -277,7 +281,7 @@ performGrenade dir = do
         else
             return $ GrenadeR NoGrenades
 
-performShoot :: Direction -> State Labyrinth ActionResult
+performShoot :: Direction -> ActionState ActionResult
 performShoot dir = do
     b <- use (currentPlayer . pbullets)
     if b > 0
@@ -294,36 +298,36 @@ performShoot dir = do
         else
             return $ ShootR NoBullets
 
-allPlayers :: State Labyrinth [PlayerId]
+allPlayers :: Monad m => LabState m [PlayerId]
 allPlayers = do
     cnt <- gets playerCount
     return [0..cnt - 1]
 
-alivePlayers :: State Labyrinth [PlayerId]
+alivePlayers :: Monad m => LabState m [PlayerId]
 alivePlayers = do
     players <- allPlayers
     filterM playerAlive players
 
-playerAlive :: PlayerId -> State Labyrinth Bool
+playerAlive :: Monad m => PlayerId -> LabState m Bool
 playerAlive i = do
     ph <- use (player i . phealth)
     return $ ph /= Dead
 
-playersAliveAt :: Position -> State Labyrinth [PlayerId]
+playersAliveAt :: Monad m => Position -> LabState m [PlayerId]
 playersAliveAt pos = do
     alive <- alivePlayers
     atPos <- filterM (playerAt pos) alive
     filterM notFallen atPos
 
-playerAt :: Position -> PlayerId -> State Labyrinth Bool
+playerAt :: Monad m => Position -> PlayerId -> LabState m Bool
 playerAt pos i = do
     pp <- use (player i . position)
     return $ pos == pp
 
-notFallen :: PlayerId -> State Labyrinth Bool
+notFallen :: Monad m => PlayerId -> LabState m Bool
 notFallen i = liftM not $ use (player i . pfell)
 
-performShootFrom :: Position -> Direction -> State Labyrinth ShootResult
+performShootFrom :: Position -> Direction -> ActionState ShootResult
 performShootFrom pos dir = do
     outside <- gets $ isOutside pos
     ct <- use (cell pos . ctype)

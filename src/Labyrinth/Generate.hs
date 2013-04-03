@@ -1,5 +1,6 @@
 module Labyrinth.Generate where
 
+import Labyrinth.Common
 import Labyrinth.Map
 import Labyrinth.Reachability
 
@@ -16,8 +17,6 @@ import Data.Tuple
 
 generateLabyrinth :: RandomGen g => Int -> Int -> Int -> g -> (Labyrinth, g)
 generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
-
-type LabState m a = StateT Labyrinth m a
 
 type LabGen g a = LabState (Rand g) a
 

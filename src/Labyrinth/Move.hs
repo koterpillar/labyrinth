@@ -110,6 +110,7 @@ makeLenses ''ReorderCellResult
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
+                  | WoundedAlert PlayerId
                   | ChoosePositionR ChoosePositionResult
                   | ReorderCellR ReorderCellResult
                   | GameStarted [StartResult]

@@ -209,6 +209,8 @@ instance Show ActionResult where
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
 
+    show (WoundedAlert pi) = "player " ++ show pi ++ " is wounded"
+
     show (ChoosePositionR cpr) = show cpr
     show (ReorderCellR cr)     = show cr
 

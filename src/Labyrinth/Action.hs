@@ -63,9 +63,11 @@ performMove'' (Move actions) = onlyWhenChosen $
             currentPlayer . pfell .= False
             performActions actions
             next <- advancePlayer
-            if isJust next
-                then return ()
-                else do
+            case next of
+                (Just pi) -> do
+                    fallen <- use $ player pi . pfell
+                    when fallen $ putResult $ WoundedAlert pi
+                Nothing -> do
                     gameEnded .= True
                     putResult Draw
 

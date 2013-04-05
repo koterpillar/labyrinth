@@ -358,8 +358,7 @@ performShootFrom pos dir = do
                             then player i . pbullets .= 0
                             else do
                                 transferAmmo_ Nothing (player i . pbullets) (cell pos . cbullets)
-                                tr <- use (player i . ptreasure)
-                                (player i . ptreasure) .= Nothing
+                                tr <- (player i . ptreasure) <<.= Nothing
                                 case tr of
                                     Nothing -> return ()
                                     Just tr' -> (cell pos . ctreasures) %= (tr':)

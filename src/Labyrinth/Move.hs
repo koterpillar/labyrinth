@@ -88,12 +88,6 @@ data GrenadeResult = GrenadeOK
                    | NoGrenades
                    deriving (Eq, Show)
 
-data ActionResult = GoR GoResult
-                  | ShootR ShootResult
-                  | GrenadeR GrenadeResult
-                  | Draw
-                  deriving (Eq)
-
 data StartResult = StartR { _splayer :: PlayerId
                           , _scell   :: CellTypeResult
                           , _sevents :: CellEvents
@@ -102,7 +96,6 @@ data StartResult = StartR { _splayer :: PlayerId
 makeLenses ''StartResult
 
 data ChoosePositionResult = ChosenOK
-                          | AllChosenOK [StartResult]
                           | ChooseAgain
                           deriving (Eq)
 
@@ -114,9 +107,16 @@ data ReorderCellResult = ReorderOK { _ronto   :: CellTypeResult
 
 makeLenses ''ReorderCellResult
 
+data ActionResult = GoR GoResult
+                  | ShootR ShootResult
+                  | GrenadeR GrenadeResult
+                  | ChoosePositionR ChoosePositionResult
+                  | ReorderCellR ReorderCellResult
+                  | GameStarted [StartResult]
+                  | Draw
+                  | WrongTurn
+                  | InvalidMove
+                  deriving (Eq)
+
 data MoveResult = MoveRes [ActionResult]
-                | ChoosePositionR ChoosePositionResult
-                | ReorderCellR ReorderCellResult
-                | WrongTurn
-                | InvalidMove
                 deriving (Eq)

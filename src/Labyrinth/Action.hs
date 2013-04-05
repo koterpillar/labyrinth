@@ -16,49 +16,64 @@ import Labyrinth.Show
 
 type ActionState a = LabState (State [ActionResult]) a
 
-putActionResult :: ActionResult -> ActionState ()
-putActionResult r = lift $ modify $ (++[r])
+putResult :: ActionResult -> ActionState ()
+putResult r = lift $ modify $ (++[r])
 
-matchActionResult :: String -> ActionState Bool
-matchActionResult str = lift $ gets $ any (isInfixOf str . show)
+matchResult :: String -> ActionState Bool
+matchResult str = lift $ gets $ any (isInfixOf str . show)
+
+returnContinue :: [Action] -> ActionResult -> ActionState ()
+returnContinue rest res = do
+    putResult res
+    performActions rest
+
+alwaysContinue :: [Action] -> ActionState ActionResult -> ActionState ()
+alwaysContinue rest act = do
+    res <- act
+    returnContinue rest res
 
 performMove :: PlayerId -> Move -> State Labyrinth MoveResult
 performMove pi move = do
+    res <- state $ \s -> swap $ runState (execStateT (performMove' pi move) s) []
+    return $ MoveRes res
+
+performMove' :: PlayerId -> Move -> ActionState ()
+performMove' pi move = do
     ended <- use gameEnded
     if ended
-        then return WrongTurn
+        then putResult WrongTurn
         else do
             current <- use currentTurn
             if current /= pi
-                then return WrongTurn
-                else performMove' move
+                then putResult WrongTurn
+                else performMove'' move
 
-onlyWhenChosen :: State Labyrinth MoveResult -> State Labyrinth MoveResult
+onlyWhenChosen :: ActionState () -> ActionState ()
 onlyWhenChosen act = do
     posChosen <- use positionsChosen
     if not posChosen
-        then return InvalidMove
+        then putResult InvalidMove
         else act
 
-performMove' :: Move -> State Labyrinth MoveResult
-performMove' (Move actions) = onlyWhenChosen $
+performMove'' :: Move -> ActionState ()
+performMove'' (Move actions) = onlyWhenChosen $
     if length (filter isMovement actions) > 1
-        then return InvalidMove
+        then putResult InvalidMove
         else do
             currentPlayer . pfell .= False
-            actionRes <- state $ \s -> swap $ runState (execStateT (performActions actions) s) []
+            performActions actions
             next <- advancePlayer
             if isJust next
-                then return $ MoveRes actionRes
+                then return ()
                 else do
                     gameEnded .= True
-                    return $ MoveRes $ actionRes ++ [Draw]
+                    putResult Draw
 
-performMove' (ChoosePosition pos) = do
+performMove'' (ChoosePosition pos) = do
     out <- gets (isOutside pos)
     posChosen <- use positionsChosen
     if out || posChosen
-        then return InvalidMove
+        then putResult InvalidMove
         else do
             currentPlayer . position .= pos
             (Just next) <- advancePlayer
@@ -70,25 +85,25 @@ performMove' (ChoosePosition pos) = do
                         (ct, cr) <- cellActions True
                         advancePlayer
                         return $ StartR pi ct cr
-                    return $ ChoosePositionR $ AllChosenOK pos
+                    putResult $ GameStarted pos
                 else
-                    return $ ChoosePositionR ChosenOK
+                    putResult $ ChoosePositionR ChosenOK
 
-performMove' (ReorderCell pos) = onlyWhenChosen $ do
+performMove'' (ReorderCell pos) = onlyWhenChosen $ do
     out <- gets (isOutside pos)
     if out
-        then return InvalidMove
+        then putResult InvalidMove
         else do
             fell <- use $ currentPlayer . pfell
             if not fell
-                then return InvalidMove
+                then putResult InvalidMove
                 else do
                     currentPlayer . position .= pos
                     currentPlayer . pfell .= False
                     (ct, cr) <- cellActions True
-                    return $ ReorderCellR $ ReorderOK ct cr
+                    putResult $ ReorderCellR $ ReorderOK ct cr
 
-advancePlayer :: State Labyrinth (Maybe PlayerId)
+advancePlayer :: ActionState (Maybe PlayerId)
 advancePlayer = do
     alive <- alivePlayers
     if null alive
@@ -107,16 +122,6 @@ isMovement :: Action -> Bool
 isMovement (Go _) = True
 isMovement _ = False
 
-returnContinue :: [Action] -> ActionResult -> ActionState ()
-returnContinue rest res = do
-    putActionResult res
-    performActions rest
-
-alwaysContinue :: [Action] -> ActionState ActionResult -> ActionState ()
-alwaysContinue rest act = do
-    res <- act
-    returnContinue rest res
-
 performActions :: [Action] -> ActionState ()
 performActions [] = return ()
 performActions (act:rest) = case act of
@@ -127,7 +132,7 @@ performActions (act:rest) = case act of
 
 type AmmoLocation = Simple Lens Labyrinth Int
 
-transferAmmo :: Monad m => Maybe Int -> AmmoLocation -> AmmoLocation -> LabState m Int
+transferAmmo :: Maybe Int -> AmmoLocation -> AmmoLocation -> ActionState Int
 transferAmmo maxAmount from to = do
     found <- use from
     has <- use to
@@ -140,12 +145,12 @@ transferAmmo maxAmount from to = do
     to .= has'
     return found
 
-transferAmmo_ :: Monad m => Maybe Int -> AmmoLocation -> AmmoLocation -> LabState m ()
+transferAmmo_ :: Maybe Int -> AmmoLocation -> AmmoLocation -> ActionState ()
 transferAmmo_ maxAmount from to = do
     transferAmmo maxAmount from to
     return ()
 
-pickBullets :: Monad m => LabState m Int
+pickBullets :: ActionState Int
 pickBullets = do
     pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
@@ -156,7 +161,7 @@ pickBullets = do
             (cell pos . cbullets)
             (currentPlayer . pbullets)
 
-pickGrenades :: Monad m => LabState m Int
+pickGrenades :: ActionState Int
 pickGrenades = do
     pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
@@ -172,7 +177,7 @@ nextPit i = do
     npits <- gets pitCount
     return $ (i + 1) `mod` npits
 
-cellActions :: Monad m => Bool -> LabState m (CellTypeResult, CellEvents)
+cellActions :: Bool -> ActionState (CellTypeResult, CellEvents)
 cellActions moved = do
     pos <- use (currentPlayer . position)
     ct <- use (cell pos . ctype)
@@ -225,7 +230,7 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
             currentPlayer . phealth .= Dead
             currentPlayer . pbullets .= 0
             currentPlayer . pgrenades .= 0
-            putActionResult $ GoR LostOutside
+            putResult $ GoR LostOutside
         else do
             w <- use (wall pos dir)
             if w == NoWall
@@ -242,7 +247,7 @@ performMovement (Towards dir) rest = let returnCont = returnContinue rest in do
                                 (Just TrueTreasure) -> do
                                     currentPlayer . ptreasure .= Nothing
                                     gameEnded .= True
-                                    putActionResult $ GoR $ WentOutside $ Just TrueTreasureR
+                                    putResult $ GoR $ WentOutside $ Just TrueTreasureR
                         else do
                             (ct, cr) <- cellActions True
                             returnCont $ GoR $ Went ct cr
@@ -374,6 +379,6 @@ performShootFrom pos dir = do
 
 performConditional :: Action -> [Action] -> ActionState ()
 performConditional (Conditional cif cthen celse) rest = do
-    match <- matchActionResult cif
+    match <- matchResult cif
     let branch = if match then cthen else celse
     performActions $ branch ++ rest

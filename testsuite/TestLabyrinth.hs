@@ -21,14 +21,14 @@ test_wrong_turn = do
         empty_labyrinth
         1
         (Move [goTowards D])
-        WrongTurn
+        (MoveRes [WrongTurn])
         $ return ()
     let endgame = applyState empty_labyrinth $ do
         gameEnded .= True
     assertMoveUpdates'
         endgame
         (Move [goTowards D])
-        WrongTurn
+        (MoveRes [WrongTurn])
         $ return ()
 
 test_combined = do
@@ -46,5 +46,5 @@ test_invalid = do
     assertMoveUpdates'
         walled_labyrinth
         (Move [goTowards R, goTowards R])
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ return ()

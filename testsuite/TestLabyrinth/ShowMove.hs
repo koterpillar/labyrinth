@@ -49,9 +49,10 @@ test_show_move_result = do
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
         MoveRes [GoR $ Went RiverR $ CellEvents 0 2 0 (Just RiverR)]
     assertShowEquals "game started; player 0 started at land, found a treasure; player 1 started at hospital" $
-        ChoosePositionR $ AllChosenOK [ StartR 0 LandR $ CellEvents 0 0 1 Nothing
-                                      , StartR 1 HospitalR $ noEvents
-                                      ]
+        MoveRes [ GameStarted [ StartR 0 LandR $ CellEvents 0 0 1 Nothing
+                              , StartR 1 HospitalR $ noEvents
+                              ]
+                ]
 
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection

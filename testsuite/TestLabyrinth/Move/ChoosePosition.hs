@@ -19,7 +19,7 @@ test_all_ok = do
     let l1_expected = applyState l1 $ do
         (player 0 . position) .= Pos 2 2
         currentTurn .= 1
-    assertEqual (ChoosePositionR ChosenOK) r1
+    assertEqual (MoveRes [ChoosePositionR ChosenOK]) r1
     assertEqual l1_expected l1
     let (r2, l2) = runState (performMove 1 $ ChoosePosition $ Pos 3 3) l1
     let l2_expected = applyState l1 $ do
@@ -30,14 +30,14 @@ test_all_ok = do
     let player_results = [ StartR 0 RiverR $ CellEvents 0 0 0 $ Just RiverDeltaR
                          , StartR 1 LandR noEvents
                          ]
-    assertEqual (ChoosePositionR $ AllChosenOK player_results) r2
+    assertEqual (MoveRes [GameStarted player_results]) r2
     assertEqual l2_expected l2
 
 test_outside = do
     assertMoveUpdates'
         l0
         (ChoosePosition $ Pos (-1) (-1))
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ do
             return ()
 
@@ -45,19 +45,19 @@ test_not_chosen = do
     assertMoveUpdates'
         l0
         (Move [])
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ do
             return ()
     assertMoveUpdates'
         l0
         (Move [goTowards R])
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ do
             return ()
     assertMoveUpdates'
         l0
         (Move [Grenade R])
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ do
             return ()
 
@@ -65,6 +65,6 @@ test_already_chosen = do
     assertMoveUpdates'
         empty_labyrinth
         (ChoosePosition $ Pos 1 1)
-        InvalidMove
+        (MoveRes [InvalidMove])
         $ do
             return ()

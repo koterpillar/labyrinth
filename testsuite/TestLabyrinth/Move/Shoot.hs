@@ -190,7 +190,7 @@ test_reorder_cell = do
         (player 1 . pfell) .= True
     assertEqual l1_expected l1
     let (r2, l2) = runState (performMove 1 $ ReorderCell $ Pos 2 1) l1
-    assertEqual (ReorderCellR $ ReorderOK HospitalR noEvents) r2
+    assertEqual (MoveRes [ReorderCellR $ ReorderOK HospitalR noEvents]) r2
     let l2_expected = applyState l2 $ do
         (player 1 . pfell) .= False
         (player 1 . position) .= Pos 2 1

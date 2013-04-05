@@ -209,7 +209,15 @@ instance Show ActionResult where
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
 
+    show (ChoosePositionR cpr) = show cpr
+    show (ReorderCellR cr)     = show cr
+
+    show (GameStarted rs) = "game started; " ++ intercalate "; " (map show rs)
+
     show Draw = "game ended with a draw"
+
+    show WrongTurn             = "wrong turn"
+    show InvalidMove           = "invalid move"
 
 instance Show StartResult where
     show (StartR pi ct cr) = "player " ++ show pi
@@ -217,17 +225,15 @@ instance Show StartResult where
 
 instance Show ChoosePositionResult where
     show ChosenOK          = "position chosen"
-    show (AllChosenOK pos) = "game started; " ++ intercalate "; " (map show pos)
     show ChooseAgain       = "positions chosen invalid, choose again"
 
 instance Show ReorderCellResult where
     show (ReorderOK ct cr) = "cell re-ordered, went onto " ++ show ct ++ show cr
     show ReorderForbidden  = "cannot re-order cell"
 
+showActResults :: [ActionResult] -> String
+showActResults [] = "ok"
+showActResults rs = intercalate ", " $ map show rs
+
 instance Show MoveResult where
-    show (MoveRes [])          = "ok"
-    show (MoveRes rs)          = intercalate ", " $ map show rs
-    show WrongTurn             = "wrong turn"
-    show InvalidMove           = "invalid move"
-    show (ChoosePositionR cpr) = show cpr
-    show (ReorderCellR cr)     = show cr
+    show (MoveRes rs) = showActResults rs

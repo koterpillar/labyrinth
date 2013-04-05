@@ -71,7 +71,7 @@ action = do
 
 goAction :: Parser Action
 goAction = do
-    string "go"
+    string "go" <|> string "move"
     spaces
     choice [ goNext
            , goDirection

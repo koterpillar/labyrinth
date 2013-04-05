@@ -33,6 +33,17 @@ test_show_move = do
     assertShowEquals "go left, if hit a wall { shoot up }" $
         Move [goTowards L, Conditional "hit a wall" [Shoot U] []]
 
+test_parse_move = do
+    assertEqual
+        (Right $ ChoosePosition $ Pos 2 3)
+        $ parseMove "choose 2 3"
+    assertEqual
+        (Right $ Move [goTowards R])
+        $ parseMove "go right"
+    assertEqual
+        (Right $ Move [goTowards R])
+        $ parseMove "move right"
+
 test_show_move_result = do
     assertShowEquals "ok" $
         MoveRes []
@@ -105,11 +116,6 @@ prop_show_choose_position =
         forAll arbitraryChoose $ \m2 ->
         show m1 == show m2
     where arbitraryChoose = (liftM ChoosePosition) arbitrary
-
-test_parse_choose_position = do
-    assertEqual
-        (Right $ ChoosePosition $ Pos 2 3)
-        $ parseMove "choose 2 3"
 
 prop_show_reorder_cell =
         forAll arbitraryReorder $ \m1 ->

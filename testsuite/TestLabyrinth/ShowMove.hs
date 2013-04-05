@@ -32,6 +32,8 @@ test_show_move = do
         Move [goTowards L, Conditional "hit a wall" [Shoot U] [Shoot D]]
     assertShowEquals "go left, if hit a wall { shoot up }" $
         Move [goTowards L, Conditional "hit a wall" [Shoot U] []]
+    assertShowEquals "query bullets, treasure, health, grenades" $
+        Query [BulletCount, TreasureCarried, PlayerHealth, GrenadeCount]
 
 test_parse_move = do
     assertEqual
@@ -59,6 +61,12 @@ test_show_move_result = do
         MoveRes [GoR $ Went LandR $ CellEvents 2 3 1 Nothing]
     assertShowEquals "went onto river, was transported to river, found 2 grenades" $
         MoveRes [GoR $ Went RiverR $ CellEvents 0 2 0 (Just RiverR)]
+    assertShowEquals "3 bullets, 1 grenade, no treasure, wounded" $
+        MoveRes $ map QueryR $ [ BulletCountR 3
+                               , GrenadeCountR 1
+                               , TreasureCarriedR False
+                               , HealthR Wounded
+                               ]
     assertShowEquals "game started; player 0 started at land, found a treasure; player 1 started at hospital" $
         MoveRes [ GameStarted [ StartR 0 LandR $ CellEvents 0 0 1 Nothing
                               , StartR 1 HospitalR $ noEvents
@@ -68,21 +76,29 @@ test_show_move_result = do
 derive makeArbitrary ''Direction
 derive makeArbitrary ''MoveDirection
 
-arbitrary' = oneof [ Go <$> arbitrary
-                   , Shoot <$> arbitrary
-                   , Grenade <$> arbitrary
+simpleAction = oneof [ Go <$> arbitrary
+                     , Shoot <$> arbitrary
+                     , Grenade <$> arbitrary
                    ]
 
 instance Arbitrary Action where
-    arbitrary = oneof [ arbitrary'
+    arbitrary = oneof [ simpleAction
                       , Conditional
                             <$> return "condition"
-                            <*> listOf arbitrary'
-                            <*> listOf arbitrary'
+                            <*> listOf simpleAction
+                            <*> listOf simpleAction
                       ]
 
+derive makeArbitrary ''QueryType
 derive makeArbitrary ''Position
-derive makeArbitrary ''Move
+
+instance Arbitrary Move where
+    arbitrary = oneof [ liftM Move arbitrary
+                      , liftM ChoosePosition arbitrary
+                      , liftM ReorderCell arbitrary
+                      , liftM Query $ listOf1 arbitrary
+                      ]
+
 derive makeArbitrary ''CellTypeResult
 derive makeArbitrary ''CellEvents
 derive makeArbitrary ''TreasureResult
@@ -90,9 +106,11 @@ derive makeArbitrary ''GoResult
 derive makeArbitrary ''ShootResult
 derive makeArbitrary ''GrenadeResult
 derive makeArbitrary ''ActionResult
-derive makeArbitrary ''StartResult
 derive makeArbitrary ''ChoosePositionResult
 derive makeArbitrary ''ReorderCellResult
+derive makeArbitrary ''Health
+derive makeArbitrary ''QueryResult
+derive makeArbitrary ''StartResult
 derive makeArbitrary ''MoveResult
 
 isSecret :: Move -> Bool

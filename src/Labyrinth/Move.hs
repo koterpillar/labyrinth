@@ -25,9 +25,16 @@ makeLenses ''Action
 goTowards :: Direction -> Action
 goTowards = Go . Towards
 
+data QueryType = BulletCount
+               | GrenadeCount
+               | PlayerHealth
+               | TreasureCarried
+               deriving (Eq)
+
 data Move = Move [Action]
           | ChoosePosition Position
           | ReorderCell Position
+          | Query [QueryType]
           deriving (Eq)
 
 data CellTypeResult = LandR
@@ -88,13 +95,6 @@ data GrenadeResult = GrenadeOK
                    | NoGrenades
                    deriving (Eq, Show)
 
-data StartResult = StartR { _splayer :: PlayerId
-                          , _scell   :: CellTypeResult
-                          , _sevents :: CellEvents
-                          } deriving (Eq)
-
-makeLenses ''StartResult
-
 data ChoosePositionResult = ChosenOK
                           | ChooseAgain
                           deriving (Eq)
@@ -107,12 +107,28 @@ data ReorderCellResult = ReorderOK { _ronto   :: CellTypeResult
 
 makeLenses ''ReorderCellResult
 
+data QueryResult = BulletCountR { _qrbullets :: Int }
+                 | GrenadeCountR { _qrgrenades :: Int }
+                 | HealthR { _qrhealth :: Health }
+                 | TreasureCarriedR { _qrtreasure :: Bool }
+                 deriving (Eq)
+
+makeLenses ''QueryResult
+
+data StartResult = StartR { _splayer :: PlayerId
+                          , _scell   :: CellTypeResult
+                          , _sevents :: CellEvents
+                          } deriving (Eq)
+
+makeLenses ''StartResult
+
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
                   | WoundedAlert PlayerId
                   | ChoosePositionR ChoosePositionResult
                   | ReorderCellR ReorderCellResult
+                  | QueryR QueryResult
                   | GameStarted [StartResult]
                   | Draw
                   | WrongTurn

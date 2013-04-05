@@ -1,6 +1,6 @@
 {-# Language Rank2Types #-}
 
-module Labyrinth.Action (performMove) where
+module Labyrinth.Action where
 
 import Control.Lens hiding (Action)
 import Control.Monad.State
@@ -37,8 +37,8 @@ performMove pi move = do
     res <- state $ \s -> swap $ runState (execStateT (performMove' pi move) s) []
     return $ MoveRes res
 
-performMove' :: PlayerId -> Move -> ActionState ()
-performMove' pi move = do
+onlyWhenCurrent :: PlayerId -> ActionState () -> ActionState ()
+onlyWhenCurrent pi act = do
     ended <- use gameEnded
     if ended
         then putResult WrongTurn
@@ -46,7 +46,7 @@ performMove' pi move = do
             current <- use currentTurn
             if current /= pi
                 then putResult WrongTurn
-                else performMove'' move
+                else act
 
 onlyWhenChosen :: ActionState () -> ActionState ()
 onlyWhenChosen act = do
@@ -55,8 +55,8 @@ onlyWhenChosen act = do
         then putResult InvalidMove
         else act
 
-performMove'' :: Move -> ActionState ()
-performMove'' (Move actions) = onlyWhenChosen $
+performMove' :: PlayerId -> Move -> ActionState ()
+performMove' pi (Move actions) = onlyWhenCurrent pi $ onlyWhenChosen $
     if length (filter isMovement actions) > 1
         then putResult InvalidMove
         else do
@@ -71,7 +71,7 @@ performMove'' (Move actions) = onlyWhenChosen $
                     gameEnded .= True
                     putResult Draw
 
-performMove'' (ChoosePosition pos) = do
+performMove' pi (ChoosePosition pos) = onlyWhenCurrent pi $ do
     out <- gets (isOutside pos)
     posChosen <- use positionsChosen
     if out || posChosen
@@ -91,7 +91,7 @@ performMove'' (ChoosePosition pos) = do
                 else
                     putResult $ ChoosePositionR ChosenOK
 
-performMove'' (ReorderCell pos) = onlyWhenChosen $ do
+performMove' pi (ReorderCell pos) = onlyWhenCurrent pi $ onlyWhenChosen $ do
     out <- gets (isOutside pos)
     if out
         then putResult InvalidMove
@@ -104,6 +104,8 @@ performMove'' (ReorderCell pos) = onlyWhenChosen $ do
                     currentPlayer . pfell .= False
                     (ct, cr) <- cellActions True
                     putResult $ ReorderCellR $ ReorderOK ct cr
+
+performMove' pi (Query queries) = onlyWhenChosen $ performQueries pi queries
 
 advancePlayer :: ActionState (Maybe PlayerId)
 advancePlayer = do
@@ -384,3 +386,16 @@ performConditional (Conditional cif cthen celse) rest = do
     match <- matchResult cif
     let branch = if match then cthen else celse
     performActions $ branch ++ rest
+
+performQueries :: PlayerId -> [QueryType] -> ActionState ()
+performQueries pi = mapM_ (performQuery pi)
+
+performQuery :: PlayerId -> QueryType -> ActionState ()
+performQuery pi q = do
+    let p restype param = liftM restype $ use (player pi . param)
+    qr <- case q of
+        BulletCount     -> p BulletCountR                pbullets
+        GrenadeCount    -> p GrenadeCountR               pgrenades
+        PlayerHealth    -> p HealthR                     phealth
+        TreasureCarried -> p (TreasureCarriedR . isJust) ptreasure
+    putResult $ QueryR qr

@@ -1,4 +1,4 @@
-module Labyrinth.Read (parseMove) where
+module Labyrinth.Read where
 
 import Labyrinth.Map
 import Labyrinth.Move
@@ -20,10 +20,19 @@ stringResult s v = do
     string s
     return v
 
+commaSpaces :: Parser ()
+commaSpaces = do
+    char ','
+    spaces
+
 moveParser :: Parser Move
 moveParser = do
     spaces
-    m <- emptyMove <|> choosePosition <|> reorderCell <|> liftM Move actions
+    m <- emptyMove
+     <|> choosePosition
+     <|> reorderCell
+     <|> liftM Move actions
+     <|> queriesParser
     spaces
     eof
     return m
@@ -58,16 +67,14 @@ integer :: Parser Int
 integer = liftM fromInteger $ T.integer (T.makeTokenParser emptyDef)
 
 actions :: Parser [Action]
-actions = sepBy1 action (char ',')
+actions = sepBy1 action commaSpaces
 
 action :: Parser Action
-action = do
-    spaces
-    choice $ map try [ goAction
-                     , grenadeAction
-                     , shootAction
-                     , conditionalAction
-                     ]
+action = choice $ map try [ goAction
+                          , grenadeAction
+                          , shootAction
+                          , conditionalAction
+                          ]
 
 goAction :: Parser Action
 goAction = do
@@ -105,7 +112,7 @@ direction = choice [ stringResult "left" L
 conditionalPart :: Parser [Action]
 conditionalPart = do
     spaces
-    a <- sepBy action $ char ','
+    a <- sepBy action commaSpaces
     spaces
     char '}'
     return a
@@ -125,3 +132,16 @@ conditionalAction = do
                        ]
     return $ Conditional ifPart thenPart elsePart
         where openBracket = spaces >> char '{'
+
+queriesParser :: Parser Move
+queriesParser = do
+    string "query"
+    spaces
+    liftM Query $ sepBy1 queryParser commaSpaces
+
+queryParser :: Parser QueryType
+queryParser = choice [ stringResult "bullets"  BulletCount
+                     , stringResult "grenades" GrenadeCount
+                     , stringResult "health"   PlayerHealth
+                     , stringResult "treasure" TreasureCarried
+                     ]

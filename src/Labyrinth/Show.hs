@@ -10,6 +10,12 @@ import Control.Monad.Writer
 import Data.List
 import Data.Maybe
 
+data Definite = Definite | Indefinite
+
+pluralize :: Definite -> Int -> String -> String
+pluralize Indefinite 1 str = "a " ++ str
+pluralize _          n str = show n ++ " " ++ str ++ (if n > 1 then "s" else "")
+
 instance Show CellType where
     show Land       = "."
     show Armory     = "A"
@@ -135,21 +141,31 @@ instance Show MoveDirection where
     show (Towards d) = show d
     show Next = "next"
 
-showActs :: [Action] -> String
-showActs = intercalate ", " . map show
+sepShow :: Show a => Char -> [a] -> String
+sepShow sep = intercalate (sep:" ") . map show
+
+commaSepShow :: Show a => [a] -> String
+commaSepShow = sepShow ','
 
 instance Show Action where
     show (Go d) = "go " ++ show d
     show (Shoot d) = "shoot " ++ show d
     show (Grenade d) = "grenade " ++ show d
     show (Conditional cif cthen celse) =
-        "if " ++ cif ++ " { " ++ showActs cthen ++ showElse celse ++ " }"
+        "if " ++ cif ++ " { " ++ commaSepShow cthen ++ showElse celse ++ " }"
         where showElse [] = ""
-              showElse x  = " } else { " ++ showActs x
+              showElse x  = " } else { " ++ commaSepShow x
+
+instance Show QueryType where
+    show BulletCount = "bullets"
+    show GrenadeCount = "grenades"
+    show PlayerHealth = "health"
+    show TreasureCarried = "treasure"
 
 instance Show Move where
     show (Move [])          = "skip"
-    show (Move acts)        = showActs acts
+    show (Move acts)        = commaSepShow acts
+    show (Query qs)         = "query " ++ commaSepShow qs
     show (ChoosePosition _) = "[choose position]"
     show (ReorderCell _)    = "[reorder cell]"
 
@@ -175,13 +191,11 @@ instance Show CellEvents where
                 tell ", found "
                 tell $
                     commaList $
-                    map (uncurry pluralize) $
+                    map (uncurry (pluralize Indefinite)) $
                     filter ((0 <) . fst)
                     [(b, "bullet"), (g, "grenade"), (t, "treasure")]
             return ()
-        where pluralize 1 str = "a " ++ str
-              pluralize n str = show n ++ " " ++ str ++ "s"
-              commaList [] = ""
+        where commaList [] = ""
               commaList [x] = x
               commaList xs = intercalate ", " (take (n - 1) xs)
                           ++ " and " ++ xs !! (n - 1)
@@ -214,16 +228,14 @@ instance Show ActionResult where
     show (ChoosePositionR cpr) = show cpr
     show (ReorderCellR cr)     = show cr
 
-    show (GameStarted rs) = "game started; " ++ intercalate "; " (map show rs)
+    show (QueryR qr) = show qr
+
+    show (GameStarted rs) = "game started; " ++ sepShow ';' rs
 
     show Draw = "game ended with a draw"
 
     show WrongTurn             = "wrong turn"
     show InvalidMove           = "invalid move"
-
-instance Show StartResult where
-    show (StartR pi ct cr) = "player " ++ show pi
-                          ++ " started at " ++ show ct ++ show cr
 
 instance Show ChoosePositionResult where
     show ChosenOK          = "position chosen"
@@ -233,9 +245,20 @@ instance Show ReorderCellResult where
     show (ReorderOK ct cr) = "cell re-ordered, went onto " ++ show ct ++ show cr
     show ReorderForbidden  = "cannot re-order cell"
 
+instance Show QueryResult where
+    show (BulletCountR n)         = pluralize Definite n "bullet"
+    show (GrenadeCountR n)        = pluralize Definite n "grenade"
+    show (HealthR h)              = show h
+    show (TreasureCarriedR True)  = "treasure"
+    show (TreasureCarriedR False) = "no treasure"
+
+instance Show StartResult where
+    show (StartR pi ct cr) = "player " ++ show pi
+                          ++ " started at " ++ show ct ++ show cr
+
 showActResults :: [ActionResult] -> String
 showActResults [] = "ok"
-showActResults rs = intercalate ", " $ map show rs
+showActResults rs = commaSepShow rs
 
 instance Show MoveResult where
     show (MoveRes rs) = showActResults rs

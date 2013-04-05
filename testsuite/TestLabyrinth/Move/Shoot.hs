@@ -49,6 +49,20 @@ test_wounded = do
             (cell target . cbullets) .= 0
             (cell target . cgrenades) .= 3
 
+test_treasure = do
+    let duel_treasure = applyState duel $ do
+        (player 1 . ptreasure) .= Just FakeTreasure
+    assertMoveUpdates'
+        duel_treasure
+        (Move [Shoot R])
+        (MoveRes [ShootR Scream])
+        $ do
+            passTurnBullet
+            hit Wounded
+            (player 1 . ptreasure) .= Nothing
+            (cell target . ctreasures) .= [FakeTreasure]
+            fell
+
 test_through_wall = do
     let duel_wall = applyState duel $ do
         (wall shootPos R) .= Wall

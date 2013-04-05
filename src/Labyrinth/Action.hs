@@ -356,7 +356,13 @@ performShootFrom pos dir = do
                         ph <- use (player i . phealth)
                         if outside
                             then player i . pbullets .= 0
-                            else transferAmmo_ Nothing (player i . pbullets) (cell pos . cbullets)
+                            else do
+                                transferAmmo_ Nothing (player i . pbullets) (cell pos . cbullets)
+                                tr <- use (player i . ptreasure)
+                                (player i . ptreasure) .= Nothing
+                                case tr of
+                                    Nothing -> return ()
+                                    Just tr' -> (cell pos . ctreasures) %= (tr':)
                         when (ph == Healthy) $ do
                             player i . phealth .= Wounded
                             player i . pfell .= True

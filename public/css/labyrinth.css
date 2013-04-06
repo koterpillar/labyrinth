@@ -1,10 +1,5 @@
 .header {
-    display: block;
-    position: fixed;
-    top: 0px;
-    height: 30px;
-    width: 100%;
-    background-color: white;
+    margin: 10px;
 }
 
 h1 {
@@ -14,15 +9,12 @@ h1 {
 }
 
 .body {
-    padding-top: 30px;
     padding-bottom: 30px;
+    overflow-y: auto;
 }
 
 .footer {
-    position: fixed;
-    bottom: 0px;
-    height: 30px;
-    width: 100%;
+    margin: 10px;
 }
 
 .obscureMove {

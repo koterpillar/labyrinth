@@ -44,6 +44,7 @@ $(document).ready(function () {
 
     function refreshGame(noTimer) {
         if (gameId) {
+            var firstSwitch = !$('#game').is(':visible');
             $('#game').show();
             $('#games_container').hide();
             $.getJSON('/' + gameId + '/log', function (result) {
@@ -55,7 +56,7 @@ $(document).ready(function () {
                     str += move.result + "<br />";
                 }
                 $('#history').html(str);
-                if (result.length > gameLength) {
+                if (firstSwitch || result.length > gameLength) {
                     scrollDown();
                 }
                 gameLength = result.length;
@@ -76,8 +77,19 @@ $(document).ready(function () {
     }
 
     function scrollDown() {
-        $(window).scrollTop($('#history').height());
+        var game_content = $('#history');
+        if (game_content.is(':visible')) {
+            var totalHeight  = window.innerHeight;
+            var headerHeight = $('.header:visible').outerHeight(true);
+            var footerHeight = $('.footer:visible').outerHeight(true);
+            var resultHeight = totalHeight - headerHeight - footerHeight;
+            game_content.outerHeight(resultHeight);
+            game_content.scrollTop(resultHeight);
+        }
     }
+
+    $(window).resize(scrollDown);
+    $(window).trigger('resize');
 
     function addLine(line) {
         $('#history').append(line + '<br />');

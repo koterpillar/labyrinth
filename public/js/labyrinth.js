@@ -84,7 +84,7 @@ $(document).ready(function () {
             var footerHeight = $('.footer:visible').outerHeight(true);
             var resultHeight = totalHeight - headerHeight - footerHeight;
             game_content.outerHeight(resultHeight);
-            game_content.scrollTop(resultHeight);
+            game_content.scrollTop(game_content.prop('scrollHeight'));
         }
     }
 

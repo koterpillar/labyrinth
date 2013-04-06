@@ -30,6 +30,7 @@ deriveSafeCopy 0 'base ''Labyrinth
 
 deriveSafeCopy 0 'base ''Action
 deriveSafeCopy 0 'base ''MoveDirection
+deriveSafeCopy 0 'base ''QueryType
 deriveSafeCopy 0 'base ''Move
 
 deriveSafeCopy 0 'base ''CellTypeResult
@@ -39,9 +40,10 @@ deriveSafeCopy 0 'base ''GoResult
 deriveSafeCopy 0 'base ''GrenadeResult
 deriveSafeCopy 0 'base ''ShootResult
 deriveSafeCopy 0 'base ''ActionResult
-deriveSafeCopy 0 'base ''StartResult
 deriveSafeCopy 0 'base ''ChoosePositionResult
 deriveSafeCopy 0 'base ''ReorderCellResult
+deriveSafeCopy 0 'base ''QueryResult
+deriveSafeCopy 0 'base ''StartResult
 deriveSafeCopy 0 'base ''MoveResult
 
 derive makeTypeable ''Labyrinth

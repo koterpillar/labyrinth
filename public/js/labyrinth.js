@@ -104,7 +104,7 @@ $(document).ready(function () {
     function obscureMove() {
         var input = $('#make_move_move');
         var move = input.val();
-        if (privateMove(input.val())) {
+        if (privateMove(input.val()) && $('#make_move_hotseat').is(':checked')) {
             if (obscureMoveDiv == null) {
                 obscureMoveDiv = $('<div />');
                 obscureMoveDiv.addClass('obscureMove');
@@ -126,6 +126,7 @@ $(document).ready(function () {
     $('#make_move_move').keydown(obscureMove);
     $('#make_move_move').keyup(obscureMove);
     $('#make_move_move').change(obscureMove);
+    $('#make_move_hotseat').change(obscureMove);
 
     $('#make_move').submit(function () {
         var form = $(this);

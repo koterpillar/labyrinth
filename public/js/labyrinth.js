@@ -14,6 +14,9 @@ $(document).ready(function () {
                 var desc = game + " - " +
                     details.width + "x" + details.height + ", " +
                     details.players + " players";
+                if (details.gameEnded) {
+                    desc += ", finished";
+                }
                 var link = $('<a href="/">' + desc + '</a>');
                 link.click(function () {
                     gameId = game;

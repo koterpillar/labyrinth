@@ -14,6 +14,7 @@ type ActionCondition = String
 data Action = Go { _amdirection :: MoveDirection }
             | Shoot { _asdirection :: Direction }
             | Grenade { _agdirection :: Direction }
+            | Surrender
             | Conditional { _acif   :: ActionCondition
                           , _acthen :: [Action]
                           , _acelse :: [Action]
@@ -125,6 +126,7 @@ makeLenses ''StartResult
 data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
+                  | Surrendered
                   | WoundedAlert PlayerId
                   | ChoosePositionR ChoosePositionResult
                   | ReorderCellR ReorderCellResult

@@ -17,7 +17,7 @@ import Labyrinth.Show
 type ActionState a = LabState (State [ActionResult]) a
 
 putResult :: ActionResult -> ActionState ()
-putResult r = lift $ modify $ (++[r])
+putResult r = lift $ modify (++[r])
 
 matchResult :: String -> ActionState Bool
 matchResult str = lift $ gets $ any (isInfixOf str . show)
@@ -129,10 +129,11 @@ isMovement _ = False
 performActions :: [Action] -> ActionState ()
 performActions [] = return ()
 performActions (act:rest) = case act of
-    Go dir                   -> performMovement dir rest
-    Grenade dir              -> alwaysContinue rest $ performGrenade dir
-    Shoot dir                -> alwaysContinue rest $ performShoot dir
-    cond@(Conditional _ _ _) -> performConditional cond rest
+    Go dir               -> performMovement dir rest
+    Grenade dir          -> alwaysContinue rest $ performGrenade dir
+    Shoot dir            -> alwaysContinue rest $ performShoot dir
+    Surrender            -> performSurrender
+    cond@(Conditional{}) -> performConditional cond rest
 
 type AmmoLocation = Simple Lens Labyrinth Int
 
@@ -363,23 +364,49 @@ performShootFrom pos dir = do
                 else do
                     forM_ othersHit $ \i -> do
                         ph <- use (player i . phealth)
-                        if outside
-                            then player i . pbullets .= 0
-                            else do
-                                transferAmmo_ Nothing (player i . pbullets) (cell pos . cbullets)
-                                tr <- (player i . ptreasure) <<.= Nothing
-                                case tr of
-                                    Nothing -> return ()
-                                    Just tr' -> (cell pos . ctreasures) %= (tr':)
+                        dropBullets i
+                        dropTreasure i
                         when (ph == Healthy) $ do
                             player i . phealth .= Wounded
                             player i . pfell .= True
                         when (ph == Wounded) $ do
-                            if outside
-                                then player i . pgrenades .= 0
-                                else transferAmmo_ Nothing (player i . pgrenades) (cell pos . cgrenades)
+                            dropGrenades i
                             player i . phealth .= Dead
                     return Scream
+
+dropBullets :: PlayerId -> ActionState ()
+dropBullets i = do
+    pos <- use $ player i . position
+    outside <- gets $ isOutside pos
+    if outside
+        then (player i . pbullets) .= 0
+        else transferAmmo_ Nothing (player i . pbullets) (cell pos . cbullets)
+
+dropGrenades :: PlayerId -> ActionState ()
+dropGrenades i = do
+    pos <- use $ player i . position
+    outside <- gets $ isOutside pos
+    if outside
+        then (player i . pgrenades) .= 0
+        else transferAmmo_ Nothing (player i . pgrenades) (cell pos . cgrenades)
+
+dropTreasure :: PlayerId -> ActionState ()
+dropTreasure i = do
+    pos <- use $ player i . position
+    outside <- gets $ isOutside pos
+    tr <- (player i . ptreasure) <<.= Nothing
+    unless outside $ case tr of
+        Nothing -> return ()
+        Just tr' -> (cell pos . ctreasures) %= (tr':)
+
+performSurrender :: ActionState ()
+performSurrender = do
+    i <- use currentTurn
+    dropBullets i
+    dropGrenades i
+    dropTreasure i
+    player i . phealth .= Dead
+    putResult Surrendered
 
 performConditional :: Action -> [Action] -> ActionState ()
 performConditional (Conditional cif cthen celse) rest = do

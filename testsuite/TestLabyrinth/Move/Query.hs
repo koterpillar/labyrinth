@@ -5,7 +5,6 @@ module TestLabyrinth.Move.Query where
 import Labyrinth
 
 import Control.Lens
-import Control.Monad.State
 
 import Test.Framework
 import TestLabyrinth.Common

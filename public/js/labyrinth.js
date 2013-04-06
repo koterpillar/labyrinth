@@ -48,18 +48,18 @@ $(document).ready(function () {
             $('#game').show();
             $('#games_container').hide();
             $.getJSON('/' + gameId + '/log', function (result) {
-                var str = "";
                 var log = result.log;
-                for (var i = 0; i < log.length; i++) {
-                    var move = log[i];
-                    str += move.player + " > " + move.move + "<br />";
-                    str += move.result + "<br />";
-                }
-                $('#history').html(str);
-                if (firstSwitch || result.length > gameLength) {
+                if (firstSwitch || log.length > gameLength) {
+                    var str = "";
+                    for (var i = 0; i < log.length; i++) {
+                        var move = log[i];
+                        str += move.player + " > " + move.move + "<br />";
+                        str += move.result + "<br />";
+                    }
+                    $('#history').html(str);
                     scrollDown();
+                    gameLength = log.length;
                 }
-                gameLength = result.length;
                 var player_input = $('#make_move_player');
                 if (player_input.val() === "" ||
                     $('#make_move_hotseat').is(':checked')) {

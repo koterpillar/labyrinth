@@ -137,12 +137,15 @@ logJSON g = JSArray $ map moveJSON g
                                 ]
 
 gameInfoJSON :: Game -> JSValue
-gameInfoJSON g = jsObject [ ("width", jsInt $ l ^. labWidth)
-                          , ("height", jsInt $ l ^. labHeight)
-                          , ("players", jsInt $ playerCount l)
-                          , ("currentTurn", jsInt $ l ^. currentTurn)
-                          ]
-    where l = g ^. labyrinth
+gameInfoJSON g = jsObject prop
+    where prop = [ ("width", jsInt $ l ^. labWidth)
+                 , ("height", jsInt $ l ^. labHeight)
+                 , ("players", jsInt $ playerCount l)
+                 , ("currentTurn", jsInt $ l ^. currentTurn)
+                 , ("gameEnded", jsBool $ l ^. gameEnded)
+                 ] ++ mapProp
+          mapProp = if l ^. gameEnded then [("map", jsShow l)] else []
+          l = g ^. labyrinth
 
 gameListJSON :: Games -> JSValue
 gameListJSON = jsObject . M.toList . M.map gameInfoJSON . view games
@@ -156,6 +159,9 @@ jsObject = JSObject . toJSObject
 
 jsInt :: Int -> JSValue
 jsInt = JSRational False . fromIntegral
+
+jsBool :: Bool -> JSValue
+jsBool = JSBool
 
 jsShow :: (Show a) => a -> JSValue
 jsShow = JSString . toJSString . show

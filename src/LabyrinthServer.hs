@@ -58,7 +58,6 @@ myApp acid = msum (map ($ acid) actions) `mplus` fileServing
                     ++ map gameAction gameActions
           gameActions = [ makeMove
                         , showLog
-                        , cheat
                         ]
 
 bodyPolicy = defaultBodyPolicy "/tmp/" 0 1000 1000
@@ -87,11 +86,6 @@ listGames :: AcidState Games -> ServerPart Response
 listGames acid = dir "list" $ nullDir >> do
     games <- query' acid GetGames
     ok $ toResponse $ J.encode $ gameListJSON games
-
-cheat :: AcidState Games -> GameId -> ServerPart Response
-cheat acid gameId = dir "cheat" $ nullDir >> do
-    g <- query' acid $ GetGame gameId
-    ok $ toResponse $ show $ g ^. labyrinth
 
 showLog :: AcidState Games -> GameId -> ServerPart Response
 showLog acid gameId = dir "log" $ nullDir >> do

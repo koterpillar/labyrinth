@@ -56,6 +56,9 @@ $(document).ready(function () {
                         str += move.player + " > " + move.move + "<br />";
                         str += move.result + "<br />";
                     }
+                    if (result.game.gameEnded) {
+                        str += "<pre>" + result.game.map + "</pre>";
+                    }
                     $('#history').html(str);
                     scrollDown();
                     gameLength = log.length;

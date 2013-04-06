@@ -28,6 +28,8 @@ test_show_move = do
         Move [Go Next]
     assertShowEquals "shoot left, go up, grenade left" $
         Move [Shoot L, goTowards U, Grenade L]
+    assertShowEquals "surrender" $
+        Move [Surrender]
     assertShowEquals "go left, if hit a wall { shoot up } else { shoot down }" $
         Move [goTowards L, Conditional "hit a wall" [Shoot U] [Shoot D]]
     assertShowEquals "go left, if hit a wall { shoot up }" $
@@ -79,7 +81,8 @@ derive makeArbitrary ''MoveDirection
 simpleAction = oneof [ Go <$> arbitrary
                      , Shoot <$> arbitrary
                      , Grenade <$> arbitrary
-                   ]
+                     , return Surrender
+                     ]
 
 instance Arbitrary Action where
     arbitrary = oneof [ simpleAction

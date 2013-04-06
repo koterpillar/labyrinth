@@ -73,6 +73,7 @@ action :: Parser Action
 action = choice $ map try [ goAction
                           , grenadeAction
                           , shootAction
+                          , surrenderAction
                           , conditionalAction
                           ]
 
@@ -101,6 +102,9 @@ shootAction = do
     spaces
     d <- direction
     return $ Shoot d
+
+surrenderAction :: Parser Action
+surrenderAction = stringResult "surrender" Surrender
 
 direction :: Parser Direction
 direction = choice [ stringResult "left" L

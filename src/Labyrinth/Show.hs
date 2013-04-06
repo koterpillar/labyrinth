@@ -151,6 +151,7 @@ instance Show Action where
     show (Go d) = "go " ++ show d
     show (Shoot d) = "shoot " ++ show d
     show (Grenade d) = "grenade " ++ show d
+    show Surrender = "surrender"
     show (Conditional cif cthen celse) =
         "if " ++ cif ++ " { " ++ commaSepShow cthen ++ showElse celse ++ " }"
         where showElse [] = ""
@@ -222,6 +223,8 @@ instance Show ActionResult where
 
     show (GrenadeR GrenadeOK)  = "ok"
     show (GrenadeR NoGrenades) = "no grenades"
+
+    show Surrendered = "surrendered"
 
     show (WoundedAlert pi) = "player " ++ show pi ++ " is wounded"
 

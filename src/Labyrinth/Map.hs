@@ -1,4 +1,4 @@
-{-# Language TemplateHaskell #-}
+{-# Language TemplateHaskell, Rank2Types #-}
 module Labyrinth.Map where
 
 import Control.Lens

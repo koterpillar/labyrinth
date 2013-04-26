@@ -1,4 +1,4 @@
-{-# Language DeriveDataTypeable, TemplateHaskell, TypeFamilies #-}
+{-# Language DeriveDataTypeable, TemplateHaskell, TypeFamilies, Rank2Types #-}
 
 module LabyrinthServer.Data where
 

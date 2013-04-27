@@ -33,6 +33,7 @@ moveParser = do
      <|> reorderCell
      <|> liftM Move actions
      <|> queriesParser
+     <|> sayParser
     spaces
     eof
     return m
@@ -149,3 +150,9 @@ queryParser = choice [ stringResult "bullets"  BulletCount
                      , stringResult "health"   PlayerHealth
                      , stringResult "treasure" TreasureCarried
                      ]
+
+sayParser :: Parser Move
+sayParser = do
+    string "say"
+    space
+    liftM Say $ many anyChar

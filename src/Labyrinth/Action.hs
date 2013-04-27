@@ -107,6 +107,8 @@ performMove' pi (ReorderCell pos) = onlyWhenCurrent pi $ onlyWhenChosen $ do
 
 performMove' pi (Query queries) = onlyWhenChosen $ performQueries pi queries
 
+performMove' _ (Say _) = return ()
+
 advancePlayer :: ActionState (Maybe PlayerId)
 advancePlayer = do
     alive <- alivePlayers

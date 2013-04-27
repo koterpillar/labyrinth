@@ -32,11 +32,14 @@ data QueryType = BulletCount
                | TreasureCarried
                deriving (Eq)
 
-data Move = Move [Action]
-          | ChoosePosition Position
-          | ReorderCell Position
-          | Query [QueryType]
+data Move = Move           { _mactions   :: [Action]    }
+          | ChoosePosition { _mcposition :: Position    }
+          | ReorderCell    { _mrposition :: Position    }
+          | Query          { _mqueries   :: [QueryType] }
+          | Say            { _msstext    :: String      }
           deriving (Eq)
+
+makeLenses ''Move
 
 data CellTypeResult = LandR
                     | ArmoryR

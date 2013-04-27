@@ -169,6 +169,7 @@ instance Show Move where
     show (Query qs)         = "query " ++ commaSepShow qs
     show (ChoosePosition _) = "[choose position]"
     show (ReorderCell _)    = "[reorder cell]"
+    show (Say str)          = "say " ++ str
 
 instance Show CellTypeResult where
     show LandR = "land"

@@ -36,6 +36,8 @@ test_show_move = do
         Move [goTowards L, Conditional "hit a wall" [Shoot U] []]
     assertShowEquals "query bullets, treasure, health, grenades" $
         Query [BulletCount, TreasureCarried, PlayerHealth, GrenadeCount]
+    assertShowEquals "say hello" $
+        Say "hello"
 
 test_parse_move = do
     assertEqual
@@ -47,6 +49,9 @@ test_parse_move = do
     assertEqual
         (Right $ Move [goTowards R])
         $ parseMove "move right"
+    assertEqual
+        (Right $ Say "hello")
+        $ parseMove "say hello"
 
 test_show_move_result = do
     assertShowEquals "ok" $
@@ -100,6 +105,7 @@ instance Arbitrary Move where
                       , liftM ChoosePosition arbitrary
                       , liftM ReorderCell arbitrary
                       , liftM Query $ listOf1 arbitrary
+                      , liftM Say arbitrary
                       ]
 
 derive makeArbitrary ''CellTypeResult

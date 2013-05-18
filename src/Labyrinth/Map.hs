@@ -73,8 +73,8 @@ advance (Pos x y) U = Pos x (y - 1)
 advance (Pos x y) R = Pos (x + 1) y
 advance (Pos x y) D = Pos x (y + 1)
 
-data Health = Healthy | Wounded | Dead
-              deriving (Eq)
+data Health = Dead | Wounded | Healthy
+              deriving (Eq, Enum)
 
 data Player = Player { _position  :: Position
                      , _phealth   :: Health

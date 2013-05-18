@@ -51,14 +51,14 @@ insertAppend k v = M.alter (addToList v) k
 
 inverse :: (Ord a, Ord b) => M.Map a [b] -> M.Map b [a]
 inverse = M.foldWithKey insertAll M.empty
-    where insertAll k vs m = foldr (flip insertAppend k) m vs
+    where insertAll k vs m = foldr (`insertAppend` k) m vs
 
 foldConcat :: (Monoid v) => M.Map k [v] -> M.Map k v
 foldConcat = M.map mconcat
 
 distribute :: (Ord k, Monoid v) => M.Map k [k] -> M.Map k v -> M.Map k v
 distribute dist = foldConcat . M.foldWithKey insertAll M.empty
-    where insertAll k v m = foldr (flip insertAppend v) m k2s
+    where insertAll k v m = foldr (`insertAppend` v) m k2s
               where k2s = M.findWithDefault [] k dist
 
 distributeN :: (Ord k, Monoid v) => Int -> M.Map k [k] -> M.Map k v -> M.Map k v

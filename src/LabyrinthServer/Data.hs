@@ -144,7 +144,7 @@ gameInfoJSON g = jsObject prop
                  , ("currentTurn", jsInt $ l ^. currentTurn)
                  , ("gameEnded", jsBool $ l ^. gameEnded)
                  ] ++ mapProp
-          mapProp = if l ^. gameEnded then [("map", jsShow l)] else []
+          mapProp = [("map", jsShow l) | l ^. gameEnded]
           l = g ^. labyrinth
 
 gameListJSON :: Games -> JSValue

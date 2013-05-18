@@ -78,9 +78,7 @@ createGame acid = dir "add" $ nullDir >> method POST >> do
     gameId <- newId
     lab <- createLabyrinth lWidth lHeight pCount
     res <- update' acid $ AddGame gameId lab
-    if res
-        then ok $ toResponse "ok"
-        else ok $ toResponse "bad game"
+    ok $ toResponse $ if res then "ok" else "bad game"
 
 listGames :: AcidState Games -> ServerPart Response
 listGames acid = dir "list" $ nullDir >> do

@@ -227,7 +227,7 @@ cellActions moved = do
     -- Pick treasures
     ctr <- use (cell npos . ctreasures)
     ptr <- use (currentPlayer . ptreasure)
-    when (isNothing ptr && length ctr > 0) $ do
+    when (isNothing ptr && not (null ctr)) $ do
         let ctr' = tail ctr
         let ptr' = Just $ head ctr
         cell npos . ctreasures .= ctr'
@@ -379,12 +379,9 @@ performShootFrom pos dir = do
                         ph <- use (player i . phealth)
                         dropBullets i
                         dropTreasure i
+                        when (ph == Wounded) $ dropGrenades i
                         player i . pjustShot .= True
-                        when (ph == Healthy) $ do
-                            player i . phealth .= Wounded
-                        when (ph == Wounded) $ do
-                            dropGrenades i
-                            player i . phealth .= Dead
+                        player i . phealth %= pred
                     return Scream
 
 dropBullets :: PlayerId -> ActionState ()

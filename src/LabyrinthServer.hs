@@ -18,6 +18,7 @@ import Happstack.Server hiding (result)
 import qualified Text.JSON as J
 
 import System.Environment
+import System.FilePath.Posix
 import System.Random
 
 import Labyrinth hiding (performMove)
@@ -34,21 +35,33 @@ createLabyrinth w h n = do
 newId :: (MonadIO m) => m String
 newId = replicateM 32 $ liftIO $ randomRIO ('a', 'z')
 
-getPort :: IO Int
-getPort = do
-    env <- getEnvironment
-    let envMap = M.fromList env
-    let port = M.lookup "PORT" envMap
-    let port' = fromMaybe "8000" port
-    return $ read port'
+envVar :: String -> IO (Maybe String)
+envVar var = do
+    env <- liftM M.fromList getEnvironment
+    return $ M.lookup var env
+
+envVarWithDefault :: String -> String -> IO String
+envVarWithDefault def var =
+    liftM (fromMaybe def) (envVar var)
+
+getDataPath :: IO String
+getDataPath = do
+    openshiftPath <- envVar "OPENSHIFT_HOMEDIR"
+    return $ case openshiftPath of
+        Nothing -> "state"
+        (Just p) -> p </> "app-root" </> "data" </> "state"
 
 main :: IO ()
 main = do
-    port <- getPort
-    let conf = nullConf { port = port }
+    ip <- envVarWithDefault "127.0.0.1" "OPENSHIFT_INTERNAL_IP"
+    port_ <- liftM read $ envVarWithDefault "8080" "PORT"
+    dataPath <- getDataPath
+    let conf = nullConf { port = port_ }
     bracket (openLocalState noGames)
         createCheckpointAndClose
-        (simpleHTTP conf . myApp)
+        $ \acid -> do
+            socket <- bindIPv4 ip (port conf)
+            simpleHTTPWithSocket socket conf $ myApp acid
 
 myApp :: AcidState Games -> ServerPart Response
 myApp acid = msum (map ($ acid) actions) `mplus` fileServing

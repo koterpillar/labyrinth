@@ -1,0 +1,28 @@
+#!/bin/sh -e
+
+cabal configure -fstatic
+cabal build
+mkdir -p rhc
+cd rhc
+[ -d .git ] || git init
+git rm -rf static .openshift labyrinth-server
+cp ../dist/build/labyrinth-server/labyrinth-server .
+cp -r ../public/ .
+mkdir static
+ln -s ../public static/public
+mkdir -p .openshift/action_hooks
+cat > .openshift/action_hooks/start <<END
+#!/bin/sh
+cd \$OPENSHIFT_HOMEDIR/app-root/repo
+./labyrinth-server &
+END
+cat > .openshift/action_hooks/stop <<END
+#!/bin/sh
+killall labyrinth-server || true
+END
+chmod +x .openshift/action_hooks/*
+date +%s > RELEASE
+git add .
+git commit -m "New version"
+git push
+cd - >/dev/null

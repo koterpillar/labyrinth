@@ -12,9 +12,13 @@ import Data.Maybe
 
 data Definite = Definite | Indefinite
 
-pluralize :: Definite -> Int -> String -> String
+pluralize :: (Eq a, Integral a, Show a) => Definite -> a -> String -> String
 pluralize Indefinite 1 str = "a " ++ str
-pluralize _          n str = show n ++ " " ++ str ++ (if n > 1 then "s" else "")
+pluralize _          n str = show n ++ " " ++ str ++ ending (abs n)
+    where ending n | n0 == 1 && n1 /= 1 = ""
+                   | otherwise          = "s"
+              where n0 = n `mod` 10
+                    n1 = n `div` 10 `mod` 10
 
 instance Show CellType where
     show Land       = "."

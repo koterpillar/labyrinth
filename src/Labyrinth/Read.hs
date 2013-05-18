@@ -20,6 +20,9 @@ stringResult s v = do
     string s
     return v
 
+spaces1 :: Parser ()
+spaces1 = skipMany1 space
+
 commaSpaces :: Parser ()
 commaSpaces = do
     char ','
@@ -46,14 +49,14 @@ emptyMove = do
 choosePosition :: Parser Move
 choosePosition = do
     try $ string "choose"
-    spaces
+    spaces1
     pos <- positionParser
     return $ ChoosePosition pos
 
 reorderCell :: Parser Move
 reorderCell = do
     try $ string "reorder"
-    spaces
+    spaces1
     pos <- positionParser
     return $ ReorderCell pos
 
@@ -81,7 +84,7 @@ action = choice $ map try [ goAction
 goAction :: Parser Action
 goAction = do
     string "go" <|> string "move"
-    spaces
+    spaces1
     choice [ goNext
            , goDirection
            ]
@@ -93,14 +96,14 @@ goAction = do
 grenadeAction :: Parser Action
 grenadeAction = do
     string "grenade"
-    spaces
+    spaces1
     d <- direction
     return $ Grenade d
 
 shootAction :: Parser Action
 shootAction = do
     string "shoot"
-    spaces
+    spaces1
     d <- direction
     return $ Shoot d
 
@@ -141,7 +144,7 @@ conditionalAction = do
 queriesParser :: Parser Move
 queriesParser = do
     string "query"
-    spaces
+    spaces1
     liftM Query $ sepBy1 queryParser commaSpaces
 
 queryParser :: Parser QueryType

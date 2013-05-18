@@ -60,13 +60,13 @@ performMove' pi (Move actions) = onlyWhenCurrent pi $ onlyWhenChosen $
     if length (filter isMovement actions) > 1
         then putResult InvalidMove
         else do
-            currentPlayer . pfell .= False
+            currentPlayer . pjustShot .= False
             performActions actions
             next <- advancePlayer
             case next of
                 (Just pi) -> do
-                    fallen <- use $ player pi . pfell
-                    when fallen $ putResult $ WoundedAlert pi
+                    justShot <- isFallen pi
+                    when justShot $ putResult $ WoundedAlert pi Wounded
                 Nothing -> do
                     gameEnded .= True
                     putResult Draw
@@ -96,12 +96,12 @@ performMove' pi (ReorderCell pos) = onlyWhenCurrent pi $ onlyWhenChosen $ do
     if out
         then putResult InvalidMove
         else do
-            fell <- use $ currentPlayer . pfell
+            fell <- use $ currentPlayer . pjustShot
             if not fell
                 then putResult InvalidMove
                 else do
                     currentPlayer . position .= pos
-                    currentPlayer . pfell .= False
+                    currentPlayer . pjustShot .= False
                     (ct, cr) <- cellActions True
                     putResult $ ReorderCellR $ ReorderOK ct cr
 
@@ -117,10 +117,18 @@ advancePlayer = do
         else do
             pi <- use currentTurn
             players <- allPlayers
-            -- build a long enough queue starting with the next player
-            let queue = take (length players) $ tail $ dropWhile (pi /=) $ cycle players
-            -- select the first alive player from the queue
-            next:_ <- filterM playerAlive queue
+            let queue = tail $ dropWhile (pi /=) $ cycle players
+            let advance (pi':ps) = do
+                alive <- playerAlive pi'
+                if alive
+                    then return pi'
+                    else do
+                        justShot <- isFallen pi'
+                        when justShot $ do
+                            (player pi' . pjustShot) .= False
+                            putResult $ WoundedAlert pi' Dead
+                        advance ps
+            next <- advance queue
             currentTurn .= next
             return $ Just next
 
@@ -341,8 +349,11 @@ playerAt pos i = do
     pp <- use (player i . position)
     return $ pos == pp
 
+isFallen :: Monad m => PlayerId -> LabState m Bool
+isFallen i = use (player i . pjustShot)
+
 notFallen :: Monad m => PlayerId -> LabState m Bool
-notFallen i = liftM not $ use (player i . pfell)
+notFallen i = liftM not $ isFallen i
 
 performShootFrom :: Position -> Direction -> ActionState ShootResult
 performShootFrom pos dir = do
@@ -368,9 +379,9 @@ performShootFrom pos dir = do
                         ph <- use (player i . phealth)
                         dropBullets i
                         dropTreasure i
+                        player i . pjustShot .= True
                         when (ph == Healthy) $ do
                             player i . phealth .= Wounded
-                            player i . pfell .= True
                         when (ph == Wounded) $ do
                             dropGrenades i
                             player i . phealth .= Dead

@@ -17,20 +17,20 @@ duel = applyState empty_labyrinth $ do
     (player 0 . position) .= shootPos
 passTurnBullet = do
     currentTurn .= 1
-    (player 0 . pbullets) .= 2
+    (player 0 . pbullets) -= 1
 hit' pi h = do
     (player pi . phealth) .= h
     (player pi . pbullets) .= 0
     (cell target . cbullets) .= 3
 hit = hit' 1
-fell' pi = (player pi . pfell) .= True
+fell' pi = (player pi . pjustShot) .= True
 fell = fell' 1
 
 test_healthy = do
     assertMoveUpdates'
         duel
         (Move [Shoot R])
-        (MoveRes [ShootR Scream, WoundedAlert 1])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet
             hit Wounded
@@ -43,7 +43,7 @@ test_wounded = do
     assertMoveUpdates'
         duel_wounded
         (Move [Shoot R])
-        (MoveRes [ShootR Scream])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Dead])
         $ do
             (player 0 . pbullets) .= 2
             hit Dead
@@ -57,7 +57,8 @@ test_wounded_alert = do
         (player 1 . position) .= Pos 4 4
         (player 2 . position) .= Pos 2 2
         positionsChosen .= True
-    let (r1, l1) = runState (performMove 0 $ Move [Shoot R]) duel3
+    let move0 = (performMove 0 $ Move [Shoot R])
+    let (r1, l1) = runState move0 duel3
     assertEqual (MoveRes [ShootR Scream]) r1
     let l1_expected = applyState duel3 $ do
         passTurnBullet
@@ -65,11 +66,37 @@ test_wounded_alert = do
         fell' 2
     assertEqual l1_expected l1
     let (r2, l2) = runState (performMove 1 $ Move [goTowards U]) l1
-    assertEqual (MoveRes [GoR $ Went LandR noEvents, WoundedAlert 2]) r2
+    assertEqual
+        (MoveRes [GoR $ Went LandR noEvents, WoundedAlert 2 Wounded])
+        r2
     let l2_expected = applyState l1 $ do
         currentTurn .= 2
         (player 1 . position) .= Pos 4 3
     assertEqual l2_expected l2
+    let (r3, l3) = runState (performMove 2 $ Move []) l2
+    assertEqual (MoveRes []) r3
+    let l3_expected = applyState l2 $ do
+        currentTurn .= 0
+        (player 2 . pjustShot) .= False
+    assertEqual l3_expected l3
+    let (r4, l4) = runState move0 l3
+    assertEqual (MoveRes [ShootR Scream]) r4
+    let l4_expected = applyState l3 $ do
+        passTurnBullet
+        hit' 2 Dead
+        fell' 2
+        (player 2 . pgrenades) .= 0
+        (cell (Pos 2 2) . cgrenades) .= 3
+    assertEqual l4_expected l4
+    let (r5, l5) = runState (performMove 1 $ Move [goTowards D]) l4
+    assertEqual
+        (MoveRes [GoR $ Went LandR noEvents, WoundedAlert 2 Dead])
+        r5
+    let l5_expected = applyState l4 $ do
+        currentTurn .= 0
+        (player 1 . position) .= Pos 4 4
+        (player 2 . pjustShot) .= False
+    assertEqual l5_expected l5
 
 test_treasure = do
     let duel_treasure = applyState duel $ do
@@ -77,7 +104,7 @@ test_treasure = do
     assertMoveUpdates'
         duel_treasure
         (Move [Shoot R])
-        (MoveRes [ShootR Scream, WoundedAlert 1])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet
             hit Wounded
@@ -150,7 +177,7 @@ test_into_armory = do
     assertMoveUpdates'
         duel_into_armory
         (Move [Shoot R])
-        (MoveRes [ShootR Scream, WoundedAlert 1])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet
             hit Wounded
@@ -164,7 +191,7 @@ test_outside = do
     assertMoveUpdates'
         duel_outside
         (Move [Shoot R])
-        (MoveRes [ShootR Scream, WoundedAlert 1])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet
             (player 1 . phealth) .= Wounded
@@ -175,7 +202,7 @@ test_double_shot = do
     assertMoveUpdates'
         duel
         (Move [Shoot R, Shoot R])
-        (MoveRes [ShootR Scream, ShootR ShootOK, WoundedAlert 1])
+        (MoveRes [ShootR Scream, ShootR ShootOK, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet
             (player 0 . pbullets) .= 1
@@ -204,17 +231,17 @@ test_reorder_cell = do
     let shoot = Move [Shoot R]
     let skip = Move []
     let (r1, l1) = runState (performMove 0 shoot) duel
-    assertEqual (MoveRes [ShootR Scream, WoundedAlert 1]) r1
+    assertEqual (MoveRes [ShootR Scream, WoundedAlert 1 Wounded]) r1
     let l1_expected = applyState duel $ do
         currentTurn .= 1
         (player 0 . pbullets) .= 2
         (player 1 . phealth) .= Wounded
-        (player 1 . pfell) .= True
+        (player 1 . pjustShot) .= True
     assertEqual l1_expected l1
     let (r2, l2) = runState (performMove 1 $ ReorderCell $ Pos 2 1) l1
     assertEqual (MoveRes [ReorderCellR $ ReorderOK HospitalR noEvents]) r2
     let l2_expected = applyState l2 $ do
-        (player 1 . pfell) .= False
+        (player 1 . pjustShot) .= False
         (player 1 . position) .= Pos 2 1
     assertEqual l2_expected l2
     let (r3, l3) = runState (performMove 1 $ Move [goTowards U]) l2
@@ -224,4 +251,4 @@ test_reorder_cell = do
         (player 1 . position) .= Pos 2 0
     assertEqual l3_expected l3
     let (r4, l4) = runState (performMove 0 shoot) duel
-    assertEqual (MoveRes [ShootR Scream, WoundedAlert 1]) r4
+    assertEqual (MoveRes [ShootR Scream, WoundedAlert 1 Wounded]) r4

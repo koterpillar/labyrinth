@@ -130,7 +130,7 @@ data ActionResult = GoR GoResult
                   | ShootR ShootResult
                   | GrenadeR GrenadeResult
                   | Surrendered
-                  | WoundedAlert PlayerId
+                  | WoundedAlert PlayerId Health
                   | ChoosePositionR ChoosePositionResult
                   | ReorderCellR ReorderCellResult
                   | QueryR QueryResult

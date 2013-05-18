@@ -56,9 +56,9 @@ instance Show Player where
         when (h /= Healthy) $ do
             tell ", "
             tell $ show h
-        f <- view pfell
+        f <- view pjustShot
         when f $
-            tell ", fallen"
+            tell ", just shot"
 
 showH :: Wall -> String
 showH NoWall   = "  "
@@ -227,7 +227,7 @@ instance Show ActionResult where
 
     show Surrendered = "surrendered"
 
-    show (WoundedAlert pi) = "player " ++ show pi ++ " is wounded"
+    show (WoundedAlert pi h) = "player " ++ show pi ++ " is " ++ show h
 
     show (ChoosePositionR cpr) = show cpr
     show (ReorderCellR cr)     = show cr

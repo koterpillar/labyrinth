@@ -46,10 +46,8 @@ envVarWithDefault def var =
 
 getDataPath :: IO String
 getDataPath = do
-    openshiftPath <- envVar "OPENSHIFT_HOMEDIR"
-    return $ case openshiftPath of
-        Nothing -> "state"
-        (Just p) -> p </> "app-root" </> "data" </> "state"
+    dataDir <- envVarWithDefault "." "OPENSHIFT_DATA_DIR"
+    return $ dataDir </> "state"
 
 main :: IO ()
 main = do

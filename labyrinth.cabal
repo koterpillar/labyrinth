@@ -18,10 +18,6 @@ source-repository head
   type:                git
   location:            git://github.com/koterpillar/labyrinth.git
 
-flag static
-  description:         Link the binary statically
-  default:             False
-
 library
   build-depends:       base >= 4.5 && < 4.7
                      , mtl ==2.1.*
@@ -78,8 +74,6 @@ executable labyrinth-server
                      , json ==0.7.*
                      , monad-loops ==0.3.*
   hs-source-dirs:      src
-  if (flag(static))
-    ghc-options:       -static -optl-pthread -optl-static
 
 test-Suite tests
   type:                exitcode-stdio-1.0

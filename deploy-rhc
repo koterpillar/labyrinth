@@ -10,8 +10,8 @@ cd rhc
 git rm -rf --ignore-unmatch * .??*
 
 cp ../dist/build/labyrinth-server/labyrinth-server .
-cp /usr/lib/x86_64-linux-gnu/libgmp.so.10 .
-cp /usr/lib/x86_64-linux-gnu/libffi.so.6 .
+cp /usr/lib/x86_64-linux-gnu/libgmp.so.* .
+cp /usr/lib/x86_64-linux-gnu/libffi.so.* .
 
 cp -r ../public/ .
 mkdir static

@@ -3,7 +3,7 @@ $(document).ready(function () {
     var gameLength = 0;
 
     function privateMove(move) {
-        return /^(choose|reorder)/.test(move);
+        return (/^(choose|reorder)/).test(move);
     }
 
     function refreshGames(noTimer) {
@@ -111,7 +111,7 @@ $(document).ready(function () {
         var input = $('#make_move_move');
         var move = input.val();
         if (privateMove(input.val()) && $('#make_move_hotseat').is(':checked')) {
-            if (obscureMoveDiv == null) {
+            if (obscureMoveDiv === null) {
                 obscureMoveDiv = $('<div />');
                 obscureMoveDiv.addClass('obscureMove');
                 $('#make_move').after(obscureMoveDiv);
@@ -122,7 +122,7 @@ $(document).ready(function () {
             obscureMoveDiv.css('background-position',
                 randomPercent() + ' ' + randomPercent());
         } else {
-            if (obscureMoveDiv != null) {
+            if (obscureMoveDiv !== null) {
                 obscureMoveDiv.remove();
                 obscureMoveDiv = null;
             }

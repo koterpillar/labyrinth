@@ -82,6 +82,7 @@ fileServing = serveDirectory DisableBrowsing ["index.html"] "public"
 
 createGame :: AcidState Games -> ServerPart Response
 createGame acid = dir "add" $ nullDir >> method POST >> do
+    decodeBody bodyPolicy
     lWidth <- lookRead "width"
     lHeight <- lookRead "height"
     pCount <- lookRead "players"

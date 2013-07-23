@@ -17,11 +17,7 @@ $(document).ready(function () {
                 if (details.gameEnded) {
                     desc += ", finished";
                 }
-                var link = $('<a href="/">' + desc + '</a>');
-                link.click(function () {
-                    gameId = game;
-                    return false;
-                });
+                var link = $('<a href="#' + game + '">' + desc + '</a>');
                 list.append(link);
                 list.append('<br />');
             });
@@ -39,13 +35,12 @@ $(document).ready(function () {
         return false;
     });
 
-    $('#back_to_list').click(function () {
-        gameId = null;
+    $(window).on('hashchange', function () {
         refreshGame(true);
-        return false;
     });
 
     function refreshGame(noTimer) {
+        gameId = window.location.hash.replace(/^#/, '');
         if (gameId) {
             var firstSwitch = !$('#game').is(':visible');
             $('#game').show();

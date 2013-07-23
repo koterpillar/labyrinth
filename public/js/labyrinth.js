@@ -1,6 +1,17 @@
 $(document).ready(function () {
     var gameId = null;
     var gameLength = 0;
+    var templates = {};
+
+    function template(name) {
+        if (templates[name]) {
+            return templates[name];
+        }
+
+        var tmpl = Handlebars.compile($('#' + name + '-template').html());
+        templates[name] = tmpl;
+        return tmpl;
+    }
 
     function privateMove(move) {
         return (/^(choose|reorder)/).test(move);
@@ -8,19 +19,7 @@ $(document).ready(function () {
 
     function refreshGames(noTimer) {
         $.getJSON('/list', function (result) {
-            var list = $('#games');
-            list.html('');
-            $.each(result, function (game, details) {
-                var desc = game + " - " +
-                    details.width + "x" + details.height + ", " +
-                    details.players + " players";
-                if (details.gameEnded) {
-                    desc += ", finished";
-                }
-                var link = $('<a href="#' + game + '">' + desc + '</a>');
-                list.append(link);
-                list.append('<br />');
-            });
+            $('#games').html(template('game-list')(result));
         });
         if (!noTimer) {
             setTimeout(refreshGames, 5000);
@@ -46,20 +45,10 @@ $(document).ready(function () {
             $('#game').show();
             $('#games_container').hide();
             $.getJSON('/' + gameId + '/log', function (result) {
-                var log = result.log;
-                if (firstSwitch || log.length > gameLength) {
-                    var str = "";
-                    for (var i = 0; i < log.length; i++) {
-                        var move = log[i];
-                        str += move.player + " > " + move.move + "<br />";
-                        str += move.result + "<br />";
-                    }
-                    if (result.game.gameEnded) {
-                        str += "<pre>" + result.game.map + "</pre>";
-                    }
-                    $('#history').html(str);
+                if (firstSwitch || result.log.length > gameLength) {
+                    $('#history').html(template('game-log')(result));
                     scrollDown();
-                    gameLength = log.length;
+                    gameLength = result.log.length;
                 }
                 var player_input = $('#make_move_player');
                 if (player_input.val() === "" ||

@@ -4,7 +4,8 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
         <title>Labyrinth</title>
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0/handlebars.min.js"></script>
         <link href="css/labyrinth.css" rel="stylesheet" type="text/css" />
         <script src="js/labyrinth.js"></script>
     </head>
@@ -41,4 +42,22 @@
             </form>
         </div>
     </body>
+    <script id='game-list-template' type='text/x-handlebars-template'>
+        {{#each this}}
+            <a href='#{{@key}}'>
+                {{@key}} - {{width}}x{{height}},
+                {{players}}{{#if gameEnded}}, finished{{/if}}
+            </a>
+            <br />
+        {{/each}}
+    </script>
+    <script id='game-log-template' type='text/x-handlebars-template'>
+        {{#each log}}
+            {{player}} > {{move}}<br />
+            {{result}}<br />
+        {{/each}}
+        {{#if game.gameEnded}}
+            <pre>{{game.map}}</pre>
+        {{/if}}
+    </script>
 </html>

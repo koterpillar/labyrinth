@@ -1,28 +1,40 @@
-#!/bin/sh -e
+#!/bin/sh
+set -e
 
-cabal configure -fstatic
+cabal configure
 cabal build
+
 mkdir -p rhc
 cd rhc
-[ -d .git ] || git init
-git rm -rf static .openshift labyrinth-server
+[ -d .git ] || rhc git-clone labyrinth -r .
+git rm -rf --ignore-unmatch * .??*
+
 cp ../dist/build/labyrinth-server/labyrinth-server .
+cp /usr/lib/x86_64-linux-gnu/libgmp.so.* .
+cp /usr/lib/x86_64-linux-gnu/libffi.so.* .
+
 cp -r ../public/ .
 mkdir static
 ln -s ../public static/public
+
 mkdir -p .openshift/action_hooks
 cat > .openshift/action_hooks/start <<END
 #!/bin/sh
-cd \$OPENSHIFT_HOMEDIR/app-root/repo
-./labyrinth-server &
+cd \${OPENSHIFT_REPO_DIR}
+LD_LIBRARY_PATH=. \
+./labyrinth-server \
+	>\${OPENSHIFT_DIY_LOG_DIR}/labyrinth-server.log 2>&1 \
+	&
 END
 cat > .openshift/action_hooks/stop <<END
 #!/bin/sh
 killall labyrinth-server || true
 END
 chmod +x .openshift/action_hooks/*
+
 date +%s > RELEASE
 git add .
 git commit -m "New version"
 git push
+
 cd - >/dev/null

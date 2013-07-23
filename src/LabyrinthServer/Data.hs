@@ -129,6 +129,21 @@ makeAcidic ''Games [ 'getGames
                    , 'performMove
                    ]
 
+exampleMoves :: [Move]
+exampleMoves = [ ChoosePosition (Pos 2 4)
+                  , Move [goTowards L]
+                  , Move [Shoot U]
+                  , Move [Grenade D, goTowards D]
+                  , ReorderCell (Pos 3 3)
+                  , Query [BulletCount, GrenadeCount, PlayerHealth]
+                  , Say "hello"
+                  , Move [Conditional "hit a wall" [Grenade D] [Shoot L]]
+                  , Move [Surrender]
+                  ]
+
+exampleMovesJSON :: JSValue
+exampleMovesJSON = JSArray $ map jsShow $ exampleMoves
+
 logJSON :: MoveLog -> JSValue
 logJSON g = JSArray $ map moveJSON g
     where moveJSON l = jsObject [ ("player", jsInt $ l ^. rplayer)

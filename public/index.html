@@ -29,6 +29,7 @@
             <div id='game_header' class='header'>
                 <h1>Game log</h1>
                 <a href='#' id='back_to_list'>Back</a>
+                <a href='/examples' class='popup-link' data-template='example-moves'>Example moves</a>
             </div>
             <div id='history' class='body'></div>
             <form id='make_move' class='footer'>
@@ -59,5 +60,12 @@
         {{#if game.gameEnded}}
             <pre>{{game.map}}</pre>
         {{/if}}
+    </script>
+    <script id='example-moves-template' type='text/x-handlebars-template'>
+        <ul>
+        {{#each this}}
+            <li>{{this}}</li>
+        {{/each}}
+        </ul>
     </script>
 </html>

@@ -137,6 +137,45 @@ $(document).ready(function () {
         return false;
     });
 
+    function hidePopup(link) {
+        var popup = link.data('popup');
+        if (popup) {
+            popup.detach();
+        }
+        link.data('open', false);
+    }
+
+    function showPopup(link) {
+        var popup = link.data('popup');
+        if (!popup) {
+            var tmpl = template(link.data('template'));
+            var text = tmpl(link.data('json'));
+            popup = $('<div class="popup">' + text + '</div>');
+            link.data('popup', popup);
+        }
+        popup.insertAfter(link);
+        link.data('open', true);
+    }
+
+    function togglePopup() {
+        var link = $(this);
+        if (link.data('open')) {
+            hidePopup(link);
+        } else {
+            if (link.data('json')) {
+                showPopup(link);
+            } else {
+                $.getJSON($(this).attr('href'), function (text) {
+                    link.data('json', text);
+                    showPopup(link);
+                });
+            }
+        }
+        return false;
+    }
+
+    $('.popup-link').click(togglePopup);
+
     refreshGames();
     refreshGame();
 });

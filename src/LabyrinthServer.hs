@@ -65,6 +65,7 @@ myApp :: AcidState Games -> ServerPart Response
 myApp acid = msum (map ($ acid) actions) `mplus` fileServing
     where actions = [ createGame
                     , listGames
+                    , listExampleMoves
                     ]
                     ++ map gameAction gameActions
           gameActions = [ makeMove
@@ -81,8 +82,6 @@ fileServing = serveDirectory DisableBrowsing ["index.html"] "public"
 
 createGame :: AcidState Games -> ServerPart Response
 createGame acid = dir "add" $ nullDir >> method POST >> do
-    nullDir
-    decodeBody bodyPolicy
     lWidth <- lookRead "width"
     lHeight <- lookRead "height"
     pCount <- lookRead "players"
@@ -95,6 +94,10 @@ listGames :: AcidState Games -> ServerPart Response
 listGames acid = dir "list" $ nullDir >> do
     games <- query' acid GetGames
     ok $ toResponse $ J.encode $ gameListJSON games
+
+listExampleMoves :: AcidState Games -> ServerPart Response
+listExampleMoves _ = dir "examples" $ nullDir >> method GET >> do
+    ok $ toResponse $ J.encode $ exampleMovesJSON
 
 showLog :: AcidState Games -> GameId -> ServerPart Response
 showLog acid gameId = dir "log" $ nullDir >> do

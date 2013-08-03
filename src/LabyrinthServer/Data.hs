@@ -119,6 +119,11 @@ performMove g p m = stateUpdate $ zoom (singular $ game g) $ do
     zoom moves $ logMoveResult $ MoveRecord p m r
     return r
 
+removeGame :: GameId -> Update Games ()
+removeGame gid = stateUpdate $ zoom games $ do
+    modify $ M.delete gid
+    return ()
+
 deriveSafeCopy 0 'base ''Games
 
 derive makeTypeable ''Games
@@ -127,6 +132,7 @@ makeAcidic ''Games [ 'getGames
                    , 'addGame
                    , 'getGame
                    , 'performMove
+                   , 'removeGame
                    ]
 
 exampleMoves :: [Move]

@@ -70,6 +70,7 @@ myApp acid = msum (map ($ acid) actions) `mplus` fileServing
                     ++ map gameAction gameActions
           gameActions = [ makeMove
                         , showLog
+                        , deleteGame
                         ]
 
 bodyPolicy = defaultBodyPolicy "/tmp/" 0 1000 1000
@@ -115,3 +116,8 @@ makeMove acid gameId = dir "move" $ nullDir >> method POST >> do
         Right move -> do
             res <- update' acid $ PerformMove gameId playerId move
             ok $ toResponse $ show res
+
+deleteGame :: AcidState Games -> GameId -> ServerPart Response
+deleteGame acid gameId = nullDir >> method DELETE >> do
+    update' acid $ RemoveGame gameId
+    ok $ toResponse "ok"

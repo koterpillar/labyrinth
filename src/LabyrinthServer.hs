@@ -18,6 +18,7 @@ import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Text as T
+import qualified Data.String as S
 
 import qualified Text.JSON as J
 
@@ -26,6 +27,7 @@ import System.FilePath.Posix
 import System.Random
 
 import Yesod
+import Yesod.Static
 
 import Labyrinth hiding (performMove)
 
@@ -48,12 +50,16 @@ getDataPath = do
     dataDir <- envVarWithDefault "." "OPENSHIFT_DATA_DIR"
     return $ dataDir </> "state"
 
-data LabyrinthServer = LabyrinthServer { lsGames :: AcidState Games
+data LabyrinthServer = LabyrinthServer { lsGames  :: AcidState Games
+                                       , lsStatic :: Static
                                        }
 
 instance Yesod LabyrinthServer
 
+staticFiles "public"
+
 mkYesod "LabyrinthServer" [parseRoutes|
+/a                   StaticR Static lsStatic
 /games               GamesR         GET
 /game                NewGameR       POST
 /game/#GameId        GameR          GET
@@ -62,12 +68,25 @@ mkYesod "LabyrinthServer" [parseRoutes|
 /examples            ExampleMovesR  GET
 |]
 
+instance RenderMessage LabyrinthServer FormMessage where
+    renderMessage _ _ = defaultFormMessage
+
+postForm :: (Html -> MForm Handler (FormResult a, Widget))
+         -> (a -> Handler Value)
+         -> Handler Value
+postForm form handler = do
+    ((result, _), _) <- runFormPostNoToken form
+    case result of
+        FormSuccess value -> handler value
+        FormFailure errors -> returnJson errors
+
 main :: IO ()
 main = do
     dataPath <- getDataPath
+    static <- static "public"
     bracket (openLocalState noGames)
         createCheckpointAndClose
-        $ \acid -> warpEnv (LabyrinthServer acid)
+        $ \acid -> warpEnv (LabyrinthServer acid static)
 
 getAcid = liftM lsGames getYesod
 
@@ -77,26 +96,23 @@ getGamesR = do
     games <- query' acid GetGames
     returnJson games
 
-instance RenderMessage LabyrinthServer FormMessage where
-    renderMessage _ _ = defaultFormMessage
+named :: T.Text -> FieldSettings LabyrinthServer
+named name = FieldSettings "" Nothing Nothing (Just name) []
 
 newGameForm :: Html
             -> MForm Handler (FormResult LabyrinthParams, Widget)
 newGameForm = renderDivs $ LabyrinthParams
-    <$> areq intField "Width" Nothing
-    <*> areq intField "Height" Nothing
-    <*> areq intField "Players" Nothing
+    <$> areq intField (named "width") Nothing
+    <*> areq intField (named "height") Nothing
+    <*> areq intField (named "players") Nothing
 
 postNewGameR :: Handler Value
-postNewGameR = do
-    ((result, _), _) <- runFormPost newGameForm
-    case result of
-        FormSuccess params -> do
-            acid <- getAcid
-            lab <- createLabyrinth params
-            gameId <- newId
-            res <- update' acid $ AddGame gameId lab
-            returnJson $ (if res then "ok" else "bad game" :: String)
+postNewGameR = postForm newGameForm $ \params -> do
+    acid <- getAcid
+    lab <- createLabyrinth params
+    gameId <- newId
+    res <- update' acid $ AddGame gameId lab
+    returnJson $ (if res then "ok" else "bad game" :: String)
 
 getGameR :: GameId -> Handler Value
 getGameR gameId = do
@@ -111,20 +127,18 @@ data PlayerMove = PlayerMove { pmplayer :: PlayerId
 makeMoveForm :: Html
              -> MForm Handler (FormResult PlayerMove, Widget)
 makeMoveForm = renderDivs $ PlayerMove
-    <$> areq intField "player" Nothing
-    <*> areq textField "move" Nothing
+    <$> areq intField (named "player") Nothing
+    <*> areq textField (named "move") Nothing
 
 postMakeMoveR :: GameId -> Handler Value
-postMakeMoveR gameId = do
-    ((result, _), _) <- runFormPost makeMoveForm
-    case result of
-        FormSuccess (PlayerMove playerId moveStr) -> do
-            acid <- getAcid
-            case parseMove (T.unpack moveStr) of
-                Left err   -> returnJson err
-                Right move -> do
-                    res <- update' acid $ PerformMove gameId playerId move
-                    returnJson $ show res
+postMakeMoveR gameId = postForm makeMoveForm $ \playerMove -> do
+    let PlayerMove playerId moveStr = playerMove
+    acid <- getAcid
+    case parseMove (T.unpack moveStr) of
+        Left err   -> returnJson err
+        Right move -> do
+            res <- update' acid $ PerformMove gameId playerId move
+            returnJson $ show res
 
 deleteDeleteGameR :: GameId -> Handler Value
 deleteDeleteGameR gameId = do

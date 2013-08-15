@@ -18,7 +18,7 @@ $(document).ready(function () {
     }
 
     function refreshGames(noTimer) {
-        $.getJSON('/list', function (result) {
+        $.getJSON('/games', function (result) {
             $('#games').html(template('game-list')(result));
         });
         if (!noTimer) {
@@ -28,7 +28,7 @@ $(document).ready(function () {
 
     $('#add_game').submit(function () {
         var form = $(this);
-        $.post('/add', form.serializeArray(), function (result) {
+        $.post('/game', form.serializeArray(), function (result) {
             refreshGames(true);
         });
         return false;
@@ -44,7 +44,7 @@ $(document).ready(function () {
             var firstSwitch = !$('#game').is(':visible');
             $('#game').show();
             $('#games_container').hide();
-            $.getJSON('/' + gameId + '/log', function (result) {
+            $.getJSON('/game/' + gameId, function (result) {
                 if (firstSwitch || result.log.length > gameLength) {
                     $('#history').html(template('game-log')(result));
                     scrollDown();
@@ -127,7 +127,7 @@ $(document).ready(function () {
         }
         addLine($('#make_move_player').val() + " > " + move);
         scrollDown();
-        $.post('/' + gameId + '/move', data, function (result) {
+        $.post('/game/' + gameId + '/move', data, function (result) {
             addLine(result);
             $('#make_move_move').val('');
             obscureMove();

@@ -1,8 +1,12 @@
-{-# Language DeriveDataTypeable, TemplateHaskell, TypeFamilies, Rank2Types #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE Rank2Types            #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 module LabyrinthServer.Data where
 
-import Control.Lens hiding (Action)
+import Control.Lens hiding (Action, (.=))
 import Control.Monad.State
 import Control.Monad.Reader (ask)
 
@@ -11,9 +15,14 @@ import Data.DeriveTH
 import Data.Derive.Typeable
 import qualified Data.Map as M
 import Data.SafeCopy (base, deriveSafeCopy)
+import qualified Data.Text as T
 import Data.Typeable
 
+import System.Random
+
 import Text.JSON
+
+import Yesod hiding (get, Update)
 
 import Labyrinth hiding (performMove)
 import qualified Labyrinth as L
@@ -101,6 +110,19 @@ stateUpdate f = do
     put st'
     return r
 
+data LabyrinthParams = LabyrinthParams { lpwidth   :: Int
+                                       , lpheight  :: Int
+                                       , lpplayers :: Int
+                                       }
+
+createLabyrinth :: (MonadIO m) => LabyrinthParams -> m Labyrinth
+createLabyrinth p = do
+    gen <- liftIO getStdGen
+    let (l, gen') = generateLabyrinth
+                        (lpwidth p) (lpheight p) (lpplayers p) gen
+    liftIO $ setStdGen gen'
+    return l
+
 addGame :: GameId -> Labyrinth -> Update Games Bool
 addGame gid lab = stateUpdate $ zoom games $ do
     existing <- gets (M.member gid)
@@ -150,30 +172,29 @@ exampleMoves = [ ChoosePosition (Pos 2 4)
 exampleMovesJSON :: JSValue
 exampleMovesJSON = JSArray $ map jsShow $ exampleMoves
 
-logJSON :: MoveLog -> JSValue
-logJSON g = JSArray $ map moveJSON g
-    where moveJSON l = jsObject [ ("player", jsInt $ l ^. rplayer)
-                                , ("move", jsShow $ l ^. rmove)
-                                , ("result", jsShow $ l ^. rresult)
-                                ]
+instance ToJSON Labyrinth where
+    toJSON l = object $ [ "width"       .= (l ^. labWidth)
+                        , "height"      .= (l ^. labHeight)
+                        , "players"     .= (playerCount l)
+                        , "currentTurn" .= (l ^. currentTurn)
+                        , "gameEnded"   .= (l ^. gameEnded)
+                        ]
+                        ++ ["map" .= show l | l ^. gameEnded]
 
-gameInfoJSON :: Game -> JSValue
-gameInfoJSON g = jsObject prop
-    where prop = [ ("width", jsInt $ l ^. labWidth)
-                 , ("height", jsInt $ l ^. labHeight)
-                 , ("players", jsInt $ playerCount l)
-                 , ("currentTurn", jsInt $ l ^. currentTurn)
-                 , ("gameEnded", jsBool $ l ^. gameEnded)
-                 ] ++ mapProp
-          mapProp = [("map", jsShow l) | l ^. gameEnded]
-          l = g ^. labyrinth
+instance ToJSON MoveRecord where
+    toJSON r = object [ "player" .= (r ^. rplayer)
+                      , "move"   .= (show $ r ^. rmove)
+                      , "result" .= (show $ r ^. rresult)
+                      ]
 
-gameListJSON :: Games -> JSValue
-gameListJSON = jsObject . M.toList . M.map gameInfoJSON . view games
+instance ToJSON Game where
+    toJSON g = object [ "game" .= (g ^. labyrinth)
+                      , "log"  .= (g ^. moves)
+                      ]
 
-gameJSON :: Game -> JSValue
-gameJSON g = jsObject [("game", gameInfoJSON g), ("log", logJSON m)]
-    where m = g ^. moves
+instance ToJSON Games where
+    toJSON g = object [T.pack id .= game | (id, game) <- lst]
+        where lst = M.toList $ g ^. games
 
 jsObject :: [(String, JSValue)] -> JSValue
 jsObject = JSObject . toJSObject

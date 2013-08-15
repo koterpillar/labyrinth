@@ -20,8 +20,6 @@ import Data.Typeable
 
 import System.Random
 
-import Text.JSON
-
 import Yesod hiding (get, Update)
 
 import Labyrinth hiding (performMove)
@@ -169,8 +167,8 @@ exampleMoves = [ ChoosePosition (Pos 2 4)
                   , Move [Surrender]
                   ]
 
-exampleMovesJSON :: JSValue
-exampleMovesJSON = JSArray $ map jsShow $ exampleMoves
+exampleMovesJSON :: Value
+exampleMovesJSON = array $ map show $ exampleMoves
 
 instance ToJSON Labyrinth where
     toJSON l = object $ [ "width"       .= (l ^. labWidth)
@@ -195,15 +193,3 @@ instance ToJSON Game where
 instance ToJSON Games where
     toJSON g = object [T.pack id .= game | (id, game) <- lst]
         where lst = M.toList $ g ^. games
-
-jsObject :: [(String, JSValue)] -> JSValue
-jsObject = JSObject . toJSObject
-
-jsInt :: Int -> JSValue
-jsInt = JSRational False . fromIntegral
-
-jsBool :: Bool -> JSValue
-jsBool = JSBool
-
-jsShow :: (Show a) => a -> JSValue
-jsShow = JSString . toJSString . show

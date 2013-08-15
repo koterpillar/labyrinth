@@ -70,6 +70,9 @@ executable labyrinth-server
                      , transformers ==0.3.*
                      , MonadRandom ==0.1.*
                      , monad-loops ==0.3.*
+                     , acid-state ==0.8.*
+                     , yesod ==1.2.*
+                     , yesod-static ==1.2.*
   hs-source-dirs:      src
 
 test-Suite tests

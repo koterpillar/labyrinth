@@ -20,8 +20,6 @@ import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.String as S
 
-import qualified Text.JSON as J
-
 import System.Environment
 import System.FilePath.Posix
 import System.Random
@@ -148,4 +146,4 @@ deleteDeleteGameR gameId = do
 
 getExampleMovesR :: Handler Value
 getExampleMovesR = do
-    returnJson $ J.encode $ exampleMovesJSON
+    returnJson exampleMovesJSON

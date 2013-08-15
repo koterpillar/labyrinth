@@ -168,12 +168,12 @@ exampleMoves = [ ChoosePosition (Pos 2 4)
                   ]
 
 exampleMovesJSON :: Value
-exampleMovesJSON = array $ map show $ exampleMoves
+exampleMovesJSON = array $ map show exampleMoves
 
 instance ToJSON Labyrinth where
     toJSON l = object $ [ "width"       .= (l ^. labWidth)
                         , "height"      .= (l ^. labHeight)
-                        , "players"     .= (playerCount l)
+                        , "players"     .= playerCount l
                         , "currentTurn" .= (l ^. currentTurn)
                         , "gameEnded"   .= (l ^. gameEnded)
                         ]
@@ -181,8 +181,8 @@ instance ToJSON Labyrinth where
 
 instance ToJSON MoveRecord where
     toJSON r = object [ "player" .= (r ^. rplayer)
-                      , "move"   .= (show $ r ^. rmove)
-                      , "result" .= (show $ r ^. rresult)
+                      , "move"   .= show (r ^. rmove)
+                      , "result" .= show (r ^. rresult)
                       ]
 
 instance ToJSON Game where

@@ -110,7 +110,7 @@ postNewGameR = postForm newGameForm $ \params -> do
     lab <- createLabyrinth params
     gameId <- newId
     res <- update' acid $ AddGame gameId lab
-    returnJson $ (if res then "ok" else "bad game" :: String)
+    returnJson (if res then "ok" else "bad game" :: String)
 
 getGameR :: GameId -> Handler Value
 getGameR gameId = do
@@ -145,5 +145,4 @@ deleteDeleteGameR gameId = do
     returnJson ("ok" :: String)
 
 getExampleMovesR :: Handler Value
-getExampleMovesR = do
-    returnJson exampleMovesJSON
+getExampleMovesR = returnJson exampleMovesJSON

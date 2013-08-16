@@ -1,0 +1,7 @@
+{{#each log}}
+	{{player}}: {{move}}<br />
+	{{result}}<br />
+{{/each}}
+{{#if game.gameEnded}}
+	<pre>{{game.map}}</pre>
+{{/if}}

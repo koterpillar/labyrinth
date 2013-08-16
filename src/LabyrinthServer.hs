@@ -24,6 +24,9 @@ import System.Environment
 import System.FilePath.Posix
 import System.Random
 
+import Text.Julius (juliusFile)
+import Text.Lucius (luciusFile)
+
 import Yesod
 import Yesod.Static
 
@@ -54,16 +57,17 @@ data LabyrinthServer = LabyrinthServer { lsGames  :: AcidState Games
 
 instance Yesod LabyrinthServer
 
-staticFiles "public"
+staticFiles "static"
 
 mkYesod "LabyrinthServer" [parseRoutes|
-/a                   StaticR Static lsStatic
+/                    HomeR          GET
 /games               GamesR         GET
 /game                NewGameR       POST
 /game/#GameId        GameR          GET
 /game/#GameId/move   MakeMoveR      POST
 /game/#GameId/delete DeleteGameR    DELETE
 /examples            ExampleMovesR  GET
+/static              StaticR        Static lsStatic
 |]
 
 instance RenderMessage LabyrinthServer FormMessage where
@@ -81,12 +85,21 @@ postForm form handler = do
 main :: IO ()
 main = do
     dataPath <- getDataPath
-    static <- static "public"
+    static <- static "static"
     bracket (openLocalState noGames)
         createCheckpointAndClose
         $ \acid -> warpEnv (LabyrinthServer acid static)
 
 getAcid = liftM lsGames getYesod
+
+getHomeR :: Handler Html
+getHomeR = defaultLayout $ do
+    toWidget $(juliusFile "templates/index.julius")
+    addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"
+    addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0/handlebars.min.js"
+    toWidget $(luciusFile "templates/index.lucius")
+    setTitle "Labyrinth"
+    $(whamletFile "templates/index.hamlet")
 
 getGamesR :: Handler Value
 getGamesR = do

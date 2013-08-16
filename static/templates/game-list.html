@@ -1,0 +1,5 @@
+{{#each this}}
+	<a href='#{{@key}}'>{{@key}} - {{width}}x{{height}},
+		{{players}}{{#if gameEnded}}, finished{{/if}}</a>
+	<br />
+{{/each}}

@@ -3,14 +3,25 @@ $(document).ready(function () {
     var gameLength = 0;
     var templates = {};
 
-    function template(name) {
-        if (templates[name]) {
-            return templates[name];
+    function apply_template(tmpl, data, where) {
+        var result = tmpl(data);
+        if (typeof where == "function") {
+            where(result);
+        } else {
+            $(where).html(result);
         }
+    }
 
-        var tmpl = Handlebars.compile($('#' + name + '-template').html());
-        templates[name] = tmpl;
-        return tmpl;
+    function template(path, data, callback) {
+        if (templates[path]) {
+            apply_template(templates[path], data, callback);
+        } else {
+            $.get(path, function (response) {
+                var tmpl = Handlebars.compile(response);
+                templates[path] = tmpl;
+                apply_template(templates[path], data, callback);
+            });
+        }
     }
 
     function privateMove(move) {
@@ -18,8 +29,8 @@ $(document).ready(function () {
     }
 
     function refreshGames(noTimer) {
-        $.getJSON('/games', function (result) {
-            $('#games').html(template('game-list')(result));
+        $.getJSON('@{GamesR}', function (result) {
+            template('@{StaticR templates_game_list_html}', result, '#games');
         });
         if (!noTimer) {
             setTimeout(refreshGames, 5000);
@@ -28,7 +39,7 @@ $(document).ready(function () {
 
     $('#add_game').submit(function () {
         var form = $(this);
-        $.post('/game', form.serializeArray(), function (result) {
+        $.post('@{NewGameR}', form.serializeArray(), function (result) {
             refreshGames(true);
         });
         return false;
@@ -46,7 +57,8 @@ $(document).ready(function () {
             $('#games_container').hide();
             $.getJSON('/game/' + gameId, function (result) {
                 if (firstSwitch || result.log.length > gameLength) {
-                    $('#history').html(template('game-log')(result));
+                    template('@{StaticR templates_game_log_html}', result,
+                        '#history');
                     scrollDown();
                     gameLength = result.log.length;
                 }
@@ -148,9 +160,8 @@ $(document).ready(function () {
     function showPopup(link) {
         var popup = link.data('popup');
         if (!popup) {
-            var tmpl = template(link.data('template'));
-            var text = tmpl(link.data('json'));
-            popup = $('<div class="popup">' + text + '</div>');
+            popup = $('<div class="popup"></div>');
+            template(link.data('template'), link.data('json'), popup);
             link.data('popup', popup);
         }
         popup.insertAfter(link);

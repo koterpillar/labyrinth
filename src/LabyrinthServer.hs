@@ -24,6 +24,7 @@ import System.Environment
 import System.FilePath.Posix
 import System.Random
 
+import Text.Hamlet (hamletFile)
 import Text.Julius (juliusFile)
 import Text.Lucius (luciusFile)
 
@@ -55,8 +56,6 @@ data LabyrinthServer = LabyrinthServer { lsGames  :: AcidState Games
                                        , lsStatic :: Static
                                        }
 
-instance Yesod LabyrinthServer
-
 staticFiles "static"
 
 mkYesod "LabyrinthServer" [parseRoutes|
@@ -69,6 +68,9 @@ mkYesod "LabyrinthServer" [parseRoutes|
 /examples            ExampleMovesR  GET
 /static              StaticR        Static lsStatic
 |]
+
+instance Yesod LabyrinthServer where
+    defaultLayout = mainLayout
 
 instance RenderMessage LabyrinthServer FormMessage where
     renderMessage _ _ = defaultFormMessage
@@ -92,13 +94,17 @@ main = do
 
 getAcid = liftM lsGames getYesod
 
+mainLayout :: Widget -> Handler Html
+mainLayout widget = do
+    p <- widgetToPageContent widget
+    giveUrlRenderer $(hamletFile "templates/layout.hamlet")
+
 getHomeR :: Handler Html
 getHomeR = defaultLayout $ do
-    toWidget $(juliusFile "templates/index.julius")
     addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"
     addScriptRemote "https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/1.0.0/handlebars.min.js"
+    toWidget $(juliusFile "templates/index.julius")
     toWidget $(luciusFile "templates/index.lucius")
-    setTitle "Labyrinth"
     $(whamletFile "templates/index.hamlet")
 
 getGamesR :: Handler Value

@@ -11,7 +11,7 @@ import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 
-import Data.Acid (AcidState, openLocalState)
+import Data.Acid (AcidState, openLocalStateFrom)
 import Data.Acid.Advanced (query', update')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.List
@@ -19,6 +19,8 @@ import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.String as S
+
+import Network.Wai.Handler.Warp
 
 import System.Environment
 import System.FilePath.Posix
@@ -87,10 +89,19 @@ postForm form handler = do
 main :: IO ()
 main = do
     dataPath <- getDataPath
+    port <- liftM read $ envVarWithDefault "8080" "PORT"
+    ip <- envVarWithDefault "127.0.0.1" "OPENSHIFT_INTERNAL_IP"
     static <- static "static"
-    bracket (openLocalState noGames)
-        createCheckpointAndClose
-        $ \acid -> warpEnv (LabyrinthServer acid static)
+    bracket
+        (openLocalStateFrom dataPath noGames)
+        createCheckpointAndClose $
+        \acid -> do
+            let server = LabyrinthServer acid static
+            app <- toWaiApp server
+            let settings = defaultSettings { settingsPort = port
+                                           , settingsHost = Host ip
+                                           }
+            runSettings settings app
 
 getAcid = liftM lsGames getYesod
 

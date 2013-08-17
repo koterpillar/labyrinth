@@ -6,12 +6,19 @@
 module Main where
 
 import Control.Applicative
+import Control.Concurrent (MVar, newEmptyMVar, withMVar)
 import Control.Exception (bracket)
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 
-import Data.Acid (AcidState, openLocalStateFrom)
+import Data.Acid ( AcidState
+                 , EventResult
+                 , EventState
+                 , openLocalStateFrom
+                 , QueryEvent
+                 , UpdateEvent
+                 )
 import Data.Acid.Advanced (query', update')
 import Data.Acid.Local (createCheckpointAndClose)
 import Data.List
@@ -21,6 +28,8 @@ import qualified Data.Text as T
 import qualified Data.String as S
 
 import Network.Wai.Handler.Warp
+import qualified Network.Wai.Handler.WebSockets as WaiWS
+import qualified Network.WebSockets as WS
 
 import System.Environment
 import System.FilePath.Posix
@@ -30,7 +39,7 @@ import Text.Hamlet (hamletFile)
 import Text.Julius (juliusFile)
 import Text.Lucius (luciusFile)
 
-import Yesod
+import Yesod hiding (update)
 import Yesod.Static
 
 import Labyrinth hiding (performMove)
@@ -54,8 +63,10 @@ getDataPath = do
     dataDir <- envVarWithDefault "." "OPENSHIFT_DATA_DIR"
     return $ dataDir </> "state"
 
-data LabyrinthServer = LabyrinthServer { lsGames  :: AcidState Games
-                                       , lsStatic :: Static
+data LabyrinthServer = LabyrinthServer { lsGames       :: AcidState Games
+                                       , lsStatic      :: Static
+                                       , lsLock        :: MVar ()
+                                       , lsSubscribers :: M.Map GameId (MVar [WS.Sink WS.Hybi00])
                                        }
 
 staticFiles "static"
@@ -96,14 +107,46 @@ main = do
         (openLocalStateFrom dataPath noGames)
         createCheckpointAndClose $
         \acid -> do
-            let server = LabyrinthServer acid static
+            lock <- newEmptyMVar
+            let server = LabyrinthServer acid static lock M.empty
             app <- toWaiApp server
-            let settings = defaultSettings { settingsPort = port
-                                           , settingsHost = Host ip
+            let intercept = WaiWS.intercept $ wsHandler server
+            let settings = defaultSettings { settingsPort      = port
+                                           , settingsHost      = Host ip
+                                           , settingsIntercept = intercept
                                            }
             runSettings settings app
 
-getAcid = liftM lsGames getYesod
+wsHandler :: LabyrinthServer -> WS.Request -> WS.WebSockets WS.Hybi00 ()
+wsHandler server rq = do
+    WS.acceptRequest rq
+    WS.getVersion >>= liftIO . putStrLn . ("Client version: " ++)
+    sink <- WS.getSink
+    WS.sendTextData ("hahaha" :: T.Text)
+
+query :: (QueryEvent event, EventState event ~ Games)
+      => event
+      -> Handler (EventResult event)
+query ev = do
+    site <- getYesod
+    let acid = lsGames site
+    query' acid ev
+
+update :: (UpdateEvent event, EventState event ~ Games)
+       => event
+       => Handler (EventResult event)
+update ev = do
+    site <- getYesod
+    let acid = lsGames site
+    res <- update' acid ev
+    liftIO $ withMVar (lsLock site) $ \_ -> do
+        putStrLn "event happened"
+        let subscribers = lsSubscribers site
+        forM_ (M.elems subscribers) $ \subscribedMVar ->
+            withMVar subscribedMVar $ \subscribed ->
+                forM_ subscribed $ \sink ->
+                    WS.sendSink sink $ WS.textData ("event happened" :: T.Text)
+        return res
 
 mainLayout :: Widget -> Handler Html
 mainLayout widget = do
@@ -120,8 +163,7 @@ getHomeR = defaultLayout $ do
 
 getGamesR :: Handler Value
 getGamesR = do
-    acid <- getAcid
-    games <- query' acid GetGames
+    games <- query GetGames
     returnJson games
 
 named :: T.Text -> FieldSettings LabyrinthServer
@@ -136,16 +178,14 @@ newGameForm = renderDivs $ LabyrinthParams
 
 postNewGameR :: Handler Value
 postNewGameR = postForm newGameForm $ \params -> do
-    acid <- getAcid
     lab <- createLabyrinth params
     gameId <- newId
-    res <- update' acid $ AddGame gameId lab
+    res <- update $ AddGame gameId lab
     returnJson (if res then "ok" else "bad game" :: String)
 
 getGameR :: GameId -> Handler Value
 getGameR gameId = do
-    acid <- getAcid
-    g <- query' acid $ GetGame gameId
+    g <- query $ GetGame gameId
     returnJson g
 
 data PlayerMove = PlayerMove { pmplayer :: PlayerId
@@ -161,17 +201,15 @@ makeMoveForm = renderDivs $ PlayerMove
 postMakeMoveR :: GameId -> Handler Value
 postMakeMoveR gameId = postForm makeMoveForm $ \playerMove -> do
     let PlayerMove playerId moveStr = playerMove
-    acid <- getAcid
     case parseMove (T.unpack moveStr) of
         Left err   -> returnJson err
         Right move -> do
-            res <- update' acid $ PerformMove gameId playerId move
+            res <- update $ PerformMove gameId playerId move
             returnJson $ show res
 
 deleteDeleteGameR :: GameId -> Handler Value
 deleteDeleteGameR gameId = do
-    acid <- getAcid
-    update' acid $ RemoveGame gameId
+    update $ RemoveGame gameId
     returnJson ("ok" :: String)
 
 getExampleMovesR :: Handler Value

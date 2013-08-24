@@ -127,15 +127,12 @@ main = do
 
 wsHandler :: LabyrinthServer -> WS.Request -> WS.WebSockets WSType ()
 wsHandler site rq = do
+    let path = BSU.toString $ WS.requestPath rq
+    -- TODO: parse path better
+    let watch = if path == "/games" then GameList else GameLog $ drop 6 path
     WS.acceptRequest rq
     sink <- WS.getSink
-    -- TODO: parse path better
-    let path = WS.requestPath rq
-    case BSU.toString path of
-        "/" -> addWatcher site GameList sink
-        '/':gameId -> addWatcher site (GameLog gameId) sink
-        otherwise ->
-            error $ "Unknown WebSocket path " ++ BSU.toString path ++ "."
+    addWatcher site watch sink
 
 addWatcher :: (MonadIO m) => LabyrinthServer -> WatchTarget -> WSSink -> m ()
 addWatcher site watch sink =
@@ -158,12 +155,15 @@ update watch ev = do
     site <- getYesod
     let acid = lsGames site
     res <- update' acid ev
-    liftIO $ withMVar (lsWatchers site) $ \watchersMap -> do
-        let watchers = fromMaybe [] $ M.lookup watch watchersMap
-        value <- watchTargetValue site watch
-        forM_ watchers $ \sink ->
-            WS.sendSink sink $ WS.textData $ encode value
-        return res
+    notifyWatchers site watch
+    return res
+
+notifyWatchers :: (MonadIO m) => LabyrinthServer -> WatchTarget -> m ()
+notifyWatchers site watch = liftIO $ withMVar (lsWatchers site) $ \watchersMap -> do
+    let watchers = fromMaybe [] $ M.lookup watch watchersMap
+    value <- watchTargetValue site watch
+    forM_ watchers $ \sink ->
+        WS.sendSink sink $ WS.textData $ encode value
 
 watchTargetValue :: (MonadIO m) => LabyrinthServer -> WatchTarget -> m Value
 watchTargetValue site GameList = do

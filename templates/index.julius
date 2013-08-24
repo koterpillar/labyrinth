@@ -1,4 +1,6 @@
 $(document).ready(function () {
+    var gameStream;
+    var logStream;
     var gameId = null;
     var gameLength = 0;
     var templates = {};
@@ -28,53 +30,91 @@ $(document).ready(function () {
         return (/^(choose|reorder)/).test(move);
     }
 
-    function refreshGames(noTimer) {
-        $.getJSON('@{GamesR}', function (result) {
-            template('@{StaticR templates_game_list_html}', result, '#games');
-        });
-        if (!noTimer) {
-            setTimeout(refreshGames, 5000);
+    function wsURL(url) {
+        return decodeURI($('<a href="' + url + '"/>')[0].href.replace(/^http/, "ws"));
+    }
+
+    function wsResult(data) {
+        if (data.data) {
+            return JSON.parse(data.data);
+        } else {
+            return data;
         }
+    }
+
+    function stopGameStream() {
+        if (gameStream) {
+            gameStream.close();
+            gameStream = null;
+        }
+    }
+
+    function startGameStream() {
+        stopGameStream();
+	    gameStream = new WebSocket(wsURL('@{GamesR}'));
+        gameStream.onmessage = refreshGames;
+        $.getJSON('@{GamesR}', refreshGames);
+    }
+
+    function refreshGames(result) {
+        result = wsResult(result);
+        template('@{StaticR templates_game_list_html}', result, '#games');
+    }
+
+    function stopLogStream() {
+        if (logStream) {
+            logStream.close();
+            logStream = null;
+        }
+        gameLength = 0;
+    }
+
+    function startLogStream(gameId) {
+        var url = '/game/' + gameId;
+        logStream = new WebSocket(wsURL(url));
+        logStream.onmessage = refreshLog;
+        $.getJSON(url, refreshLog);
+    }
+
+    function refreshLog(result) {
+        result = wsResult(result);
+        template('@{StaticR templates_game_log_html}', result, function(html) {
+            if (result.log.length > gameLength) {
+                $('#history').html(html);
+            }
+            scrollDown();
+            gameLength = result.log.length;
+
+            var player_input = $('#make_move_player');
+            if (player_input.val() === "" ||
+                $('#make_move_hotseat').is(':checked')) {
+                player_input.val(result.game.currentTurn);
+            }
+            player_input.attr('max', result.game.players - 1);
+        });
     }
 
     $('#add_game').submit(function () {
         var form = $(this);
-        $.post('@{NewGameR}', form.serializeArray(), function (result) {
-            refreshGames(true);
-        });
+        $.post('@{NewGameR}', form.serializeArray());
         return false;
     });
 
-    $(window).on('hashchange', function () {
-        refreshGame(true);
-    });
-
-    function refreshGame(noTimer) {
+    function loadPage() {
+        // TODO: better client-side routing?
         gameId = window.location.hash.replace(/^#/, '');
         if (gameId) {
-            var firstSwitch = !$('#game').is(':visible');
+            stopGameStream();
+            startLogStream(gameId);
+
             $('#game').show();
             $('#games_container').hide();
-            $.getJSON('/game/' + gameId, function (result) {
-                if (firstSwitch || result.log.length > gameLength) {
-                    template('@{StaticR templates_game_log_html}', result,
-                        '#history');
-                    scrollDown();
-                    gameLength = result.log.length;
-                }
-                var player_input = $('#make_move_player');
-                if (player_input.val() === "" ||
-                    $('#make_move_hotseat').is(':checked')) {
-                    player_input.val(result.game.currentTurn);
-                }
-                player_input.attr('max', result.game.players - 1);
-            });
         } else {
+            stopLogStream();
+            startGameStream();
+
             $('#game').hide();
             $('#games_container').show();
-        }
-        if (!noTimer) {
-            setTimeout(refreshGame, 1000);
         }
     }
 
@@ -92,10 +132,6 @@ $(document).ready(function () {
 
     $(window).resize(scrollDown);
     $(window).trigger('resize');
-
-    function addLine(line) {
-        $('#history').append(line + '<br />');
-    }
 
     function randomPercent() {
         var val = Math.random() * 100;
@@ -133,17 +169,11 @@ $(document).ready(function () {
     $('#make_move').submit(function () {
         var form = $(this);
         var data = form.serialize();
-        var move = $('#make_move_move').val();
-        if (privateMove(move)) {
-            move = '***';
-        }
-        addLine($('#make_move_player').val() + " > " + move);
         scrollDown();
         $.post('/game/' + gameId + '/move', data, function (result) {
-            addLine(result);
             $('#make_move_move').val('');
-            obscureMove();
             $('#make_move_move').focus();
+            obscureMove();
             scrollDown();
         });
         return false;
@@ -187,6 +217,8 @@ $(document).ready(function () {
 
     $('.popup-link').click(togglePopup);
 
-    refreshGames();
-    refreshGame();
+    loadPage();
+    $(window).on('hashchange', function () {
+        loadPage();
+    });
 });

@@ -6,7 +6,7 @@
 module Main where
 
 import Control.Applicative
-import Control.Concurrent (MVar, newEmptyMVar, withMVar)
+import Control.Concurrent
 import Control.Exception (bracket)
 import Control.Lens
 import Control.Monad
@@ -21,6 +21,8 @@ import Data.Acid ( AcidState
                  )
 import Data.Acid.Advanced (query', update')
 import Data.Acid.Local (createCheckpointAndClose)
+import Data.Aeson
+import qualified Data.ByteString.UTF8 as BSU
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -63,10 +65,16 @@ getDataPath = do
     dataDir <- envVarWithDefault "." "OPENSHIFT_DATA_DIR"
     return $ dataDir </> "state"
 
-data LabyrinthServer = LabyrinthServer { lsGames       :: AcidState Games
-                                       , lsStatic      :: Static
-                                       , lsLock        :: MVar ()
-                                       , lsSubscribers :: M.Map GameId (MVar [WS.Sink WS.Hybi00])
+data WatchTarget = GameList | GameLog GameId
+                   deriving (Eq, Ord)
+
+type WSType = WS.Hybi00
+
+type WSSink = WS.Sink WSType
+
+data LabyrinthServer = LabyrinthServer { lsGames    :: AcidState Games
+                                       , lsStatic   :: Static
+                                       , lsWatchers :: MVar (M.Map WatchTarget [WSSink])
                                        }
 
 staticFiles "static"
@@ -107,8 +115,8 @@ main = do
         (openLocalStateFrom dataPath noGames)
         createCheckpointAndClose $
         \acid -> do
-            lock <- newEmptyMVar
-            let server = LabyrinthServer acid static lock M.empty
+            watchers <- newMVar M.empty
+            let server = LabyrinthServer acid static watchers
             app <- toWaiApp server
             let intercept = WaiWS.intercept $ wsHandler server
             let settings = defaultSettings { settingsPort      = port
@@ -117,12 +125,22 @@ main = do
                                            }
             runSettings settings app
 
-wsHandler :: LabyrinthServer -> WS.Request -> WS.WebSockets WS.Hybi00 ()
-wsHandler server rq = do
+wsHandler :: LabyrinthServer -> WS.Request -> WS.WebSockets WSType ()
+wsHandler site rq = do
     WS.acceptRequest rq
-    WS.getVersion >>= liftIO . putStrLn . ("Client version: " ++)
     sink <- WS.getSink
-    WS.sendTextData ("hahaha" :: T.Text)
+    -- TODO: parse path better
+    let path = WS.requestPath rq
+    case BSU.toString path of
+        "/" -> addWatcher site GameList sink
+        '/':gameId -> addWatcher site (GameLog gameId) sink
+        otherwise ->
+            error $ "Unknown WebSocket path " ++ BSU.toString path ++ "."
+
+addWatcher :: (MonadIO m) => LabyrinthServer -> WatchTarget -> WSSink -> m ()
+addWatcher site watch sink =
+    liftIO $ modifyMVar_ (lsWatchers site) $ \watchers ->
+        return $ M.insertWith (++) watch [sink] watchers
 
 query :: (QueryEvent event, EventState event ~ Games)
       => event
@@ -133,20 +151,35 @@ query ev = do
     query' acid ev
 
 update :: (UpdateEvent event, EventState event ~ Games)
-       => event
-       => Handler (EventResult event)
-update ev = do
+       => WatchTarget
+       -> event
+       -> Handler (EventResult event)
+update watch ev = do
     site <- getYesod
     let acid = lsGames site
     res <- update' acid ev
-    liftIO $ withMVar (lsLock site) $ \_ -> do
-        putStrLn "event happened"
-        let subscribers = lsSubscribers site
-        forM_ (M.elems subscribers) $ \subscribedMVar ->
-            withMVar subscribedMVar $ \subscribed ->
-                forM_ subscribed $ \sink ->
-                    WS.sendSink sink $ WS.textData ("event happened" :: T.Text)
+    liftIO $ withMVar (lsWatchers site) $ \watchersMap -> do
+        let watchers = fromMaybe [] $ M.lookup watch watchersMap
+        value <- watchTargetValue site watch
+        forM_ watchers $ \sink ->
+            WS.sendSink sink $ WS.textData $ encode value
         return res
+
+watchTargetValue :: (MonadIO m) => LabyrinthServer -> WatchTarget -> m Value
+watchTargetValue site GameList = do
+    let acid = lsGames site
+    result <- query' acid GetGames
+    return $ toJSON result
+watchTargetValue site (GameLog gameId) = do
+    let acid = lsGames site
+    result <- query' acid $ GetGame gameId
+    return $ toJSON result
+
+immediateResponse :: WatchTarget -> Handler Value
+immediateResponse target = do
+    site <- getYesod
+    result <- watchTargetValue site target
+    returnJson result
 
 mainLayout :: Widget -> Handler Html
 mainLayout widget = do
@@ -162,9 +195,7 @@ getHomeR = defaultLayout $ do
     $(whamletFile "templates/index.hamlet")
 
 getGamesR :: Handler Value
-getGamesR = do
-    games <- query GetGames
-    returnJson games
+getGamesR = immediateResponse GameList
 
 named :: T.Text -> FieldSettings LabyrinthServer
 named name = FieldSettings "" Nothing Nothing (Just name) []
@@ -180,13 +211,11 @@ postNewGameR :: Handler Value
 postNewGameR = postForm newGameForm $ \params -> do
     lab <- createLabyrinth params
     gameId <- newId
-    res <- update $ AddGame gameId lab
+    res <- update GameList $ AddGame gameId lab
     returnJson (if res then "ok" else "bad game" :: String)
 
 getGameR :: GameId -> Handler Value
-getGameR gameId = do
-    g <- query $ GetGame gameId
-    returnJson g
+getGameR gameId = immediateResponse (GameLog gameId)
 
 data PlayerMove = PlayerMove { pmplayer :: PlayerId
                              , pmmove   :: T.Text
@@ -204,12 +233,12 @@ postMakeMoveR gameId = postForm makeMoveForm $ \playerMove -> do
     case parseMove (T.unpack moveStr) of
         Left err   -> returnJson err
         Right move -> do
-            res <- update $ PerformMove gameId playerId move
+            res <- update (GameLog gameId) $ PerformMove gameId playerId move
             returnJson $ show res
 
 deleteDeleteGameR :: GameId -> Handler Value
 deleteDeleteGameR gameId = do
-    update $ RemoveGame gameId
+    update GameList $ RemoveGame gameId
     returnJson ("ok" :: String)
 
 getExampleMovesR :: Handler Value

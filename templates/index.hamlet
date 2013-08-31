@@ -18,9 +18,9 @@
   <div #history .body>
   <form #make_move .footer>
     <label for=make_move_hotseat>Hotseat:
-      <input type=checkbox #make_move_hotseat name=hotseat>
-      <label for=make_move_player>Player:
-      <input type=number min=0 #make_move_player name=player>
-      <label for=make_move_move>Move:
-      <input type=text #make_move_move name=move lang=en>
-      <input type=submit value="Make move">
+    <input type=checkbox #make_move_hotseat name=hotseat>
+    <label for=make_move_player>Player:
+    <input type=number min=0 #make_move_player name=player>
+    <label for=make_move_move>Move:
+    <input type=text #make_move_move name=move lang=en>
+    <input type=submit value="Make move">

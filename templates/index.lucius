@@ -28,3 +28,7 @@ h1 {
     border: 1px solid black;
     box-shadow: 2px 2px black;
 }
+
+.game form {
+    display: inline;
+}

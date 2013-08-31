@@ -1,5 +1,9 @@
 {{#each this}}
-	<a href='#{{@key}}'>{{@key}} - {{width}}x{{height}},
-		{{players}}{{#if gameEnded}}, finished{{/if}}</a>
-	<br />
+    <div class='game'>
+        <a href='#{{@key}}'>{{@key}} - {{game.width}}x{{game.height}},
+            {{game.players}} players{{#if game.gameEnded}}, finished{{/if}}</a>
+        <form action='/game/{{@key}}/delete' data-ajax='1' data-method='DELETE'>
+            <input type='submit' value='x'>
+        </form>
+    </div>
 {{/each}}

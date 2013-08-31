@@ -10,7 +10,7 @@
         <input #add_game_height type=number min=4 max=10 name=height>
         <input type=submit value="Create game">
   <div #games .body>
-<div #game>
+<div #game_log>
   <div #game_header .header>
     <h1>Game log
     <a href=# #back_to_list>Back

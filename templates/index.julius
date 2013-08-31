@@ -1,6 +1,4 @@
 $(document).ready(function () {
-    var gameStream;
-    var logStream;
     var gameId = null;
     var gameLength = 0;
     var templates = {};
@@ -42,42 +40,48 @@ $(document).ready(function () {
         }
     }
 
-    function stopGameStream() {
-        if (gameStream) {
-            gameStream.close();
-            gameStream = null;
-        }
+    function Stream(address) {
+        this.onMessage = function () {};
+        this.onClose = function () {};
+
+        this.address = address;
+
+        this.start = function () {
+            if (!this.socket) {
+                var self = this;
+                $.ajax({
+                    url: this.address,
+                    context: this
+                }).done(this.onMessage);
+                this.socket = new WebSocket(wsURL(this.address));
+                this.socket.onmessage = function (msg) {
+                    self.onMessage(JSON.parse(msg.data));
+                };
+            }
+        };
+
+        this.stop = function () {
+            if (this.socket) {
+                this.socket.close();
+                this.socket = null;
+                this.onClose();
+            }
+        };
     }
 
-    function startGameStream() {
-        stopGameStream();
-	    gameStream = new WebSocket(wsURL('@{GamesR}'));
-        gameStream.onmessage = refreshGames;
-        $.getJSON('@{GamesR}', refreshGames);
+    var listStream = new Stream('@{GamesR}');
+
+    listStream.onMessage = function (gameList) {
+        template('@{StaticR templates_game_list_html}', gameList, '#games');
     }
 
-    function refreshGames(result) {
-        result = wsResult(result);
-        template('@{StaticR templates_game_list_html}', result, '#games');
-    }
+    var logStream = new Stream();
 
-    function stopLogStream() {
-        if (logStream) {
-            logStream.close();
-            logStream = null;
-        }
+    logStream.onClose = function () {
         gameLength = 0;
-    }
+    };
 
-    function startLogStream(gameId) {
-        var url = '/game/' + gameId;
-        logStream = new WebSocket(wsURL(url));
-        logStream.onmessage = refreshLog;
-        $.getJSON(url, refreshLog);
-    }
-
-    function refreshLog(result) {
-        result = wsResult(result);
+    logStream.onMessage = function (result) {
         template('@{StaticR templates_game_log_html}', result, function(html) {
             if (result.log.length > gameLength) {
                 $('#history').html(html);
@@ -87,7 +91,8 @@ $(document).ready(function () {
 
             var player_input = $('#make_move_player');
             if (player_input.val() === "" ||
-                $('#make_move_hotseat').is(':checked')) {
+                $('#make_move_hotseat').is(':checked')
+            ) {
                 player_input.val(result.game.currentTurn);
             }
             player_input.attr('max', result.game.players - 1);
@@ -104,16 +109,17 @@ $(document).ready(function () {
         // TODO: better client-side routing?
         gameId = window.location.hash.replace(/^#/, '');
         if (gameId) {
-            stopGameStream();
-            startLogStream(gameId);
+            listStream.stop();
+            logStream.address = '/game/' + gameId;
+            logStream.start();
 
-            $('#game').show();
+            $('#game_log').show();
             $('#games_container').hide();
         } else {
-            stopLogStream();
-            startGameStream();
+            logStream.stop();
+            listStream.start();
 
-            $('#game').hide();
+            $('#game_log').hide();
             $('#games_container').show();
         }
     }
@@ -166,17 +172,31 @@ $(document).ready(function () {
     $('#make_move_move').change(obscureMove);
     $('#make_move_hotseat').change(obscureMove);
 
+    function ajax_submit(callback) {
+        var form = $(this);
+        if (!callback) {
+            callback = function () {};
+        }
+        $.ajax(form.attr('action'), {
+            data: form.serialize(),
+            method: form.data('method'),
+            success: callback,
+        });
+        return false;
+    }
+
+    $(document).on('click', 'form[data-ajax]', ajax_submit);
+
     $('#make_move').submit(function () {
         var form = $(this);
-        var data = form.serialize();
+        form.attr('action', '/game/' + gameId + '/move');
         scrollDown();
-        $.post('/game/' + gameId + '/move', data, function (result) {
+        return ajax_submit.call(form, function () {
             $('#make_move_move').val('');
             $('#make_move_move').focus();
             obscureMove();
             scrollDown();
         });
-        return false;
     });
 
     function hidePopup(link) {

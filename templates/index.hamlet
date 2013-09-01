@@ -16,7 +16,7 @@
     <a href=# #back_to_list>Back
     <a href=@{ExampleMovesR} .popup-link data-template=@{StaticR templates_example_moves_html}>Example moves
   <div #history .body>
-  <form #make_move .footer>
+  <form #make_move .footer data-method=POST>
     <label for=make_move_hotseat>Hotseat:
     <input type=checkbox #make_move_hotseat name=hotseat>
     <label for=make_move_player>Player:

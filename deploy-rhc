@@ -13,9 +13,7 @@ cp ../dist/build/labyrinth-server/labyrinth-server .
 cp /usr/lib/x86_64-linux-gnu/libgmp.so.* .
 cp /usr/lib/x86_64-linux-gnu/libffi.so.* .
 
-cp -r ../public/ .
-mkdir static
-ln -s ../public static/public
+cp -r ../static/ .
 
 mkdir -p .openshift/action_hooks
 cat > .openshift/action_hooks/start <<END

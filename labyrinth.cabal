@@ -100,7 +100,7 @@ test-Suite tests
                      , transformers ==0.3.*
                      , MonadRandom ==0.1.*
                      , monad-loops ==0.3.*
-                     , HTF >=0.10 && <0.12
+                     , HTF ==0.11.*
                      , HUnit ==1.2.*
                      , QuickCheck >=2.6 && < 2.7
   hs-source-dirs:      src, testsuite

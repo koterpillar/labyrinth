@@ -168,6 +168,17 @@ test_found_ammo = do
             (cell (Pos 0 1) . cbullets) .= 3
             (cell (Pos 0 1) . cgrenades) .= 5
             currentTurn .= 1
+    let empty_ammo_wounded = applyState empty_ammo $ do
+        (player 0 . phealth) .= Wounded
+    assertMoveUpdates'
+        empty_ammo_wounded
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went LandR $ CellEvents 2 1 0 Nothing])
+        $ do
+            (player 0 . position) .= Pos 0 1
+            (player 0 . pgrenades) .= 1
+            (cell (Pos 0 1) . cgrenades) .= 0
+            currentTurn .= 1
 
 test_found_treasure = do
     let empty_treasure = applyState empty_labyrinth $ do
@@ -186,6 +197,15 @@ test_found_treasure = do
         (cell (Pos 0 1) . ctreasures) .= [TrueTreasure]
     assertMoveUpdates'
         empty_treasure_2
+        (Move [goTowards D])
+        (MoveRes [GoR $ Went LandR $ CellEvents 0 0 1 Nothing])
+        $ do
+            (player 0 . position) .= Pos 0 1
+            currentTurn .= 1
+    let empty_treasure_wounded = applyState empty_treasure $ do
+        (player 0 . phealth) .= Wounded
+    assertMoveUpdates'
+        empty_treasure_wounded
         (Move [goTowards D])
         (MoveRes [GoR $ Went LandR $ CellEvents 0 0 1 Nothing])
         $ do

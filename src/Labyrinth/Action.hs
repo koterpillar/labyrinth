@@ -165,27 +165,47 @@ transferAmmo_ maxAmount from to = do
     transferAmmo maxAmount from to
     return ()
 
-pickBullets :: ActionState Int
-pickBullets = do
+pickInside :: ActionState Int -> ActionState Int
+pickInside action = do
     pos <- use $ currentPlayer . position
     out <- gets $ isOutside pos
     if out
         then return 0
+        else action
+
+pickBullets :: ActionState Int
+pickBullets = pickInside $ do
+    pos <- use $ currentPlayer . position
+    health <- use $ currentPlayer . phealth
+    if health == Wounded
+        then use $ cell pos . cbullets
         else transferAmmo
-            (Just maxBullets)
-            (cell pos . cbullets)
-            (currentPlayer . pbullets)
+                (Just maxBullets)
+                (cell pos . cbullets)
+                (currentPlayer . pbullets)
 
 pickGrenades :: ActionState Int
-pickGrenades = do
+pickGrenades = pickInside $ do
     pos <- use $ currentPlayer . position
-    out <- gets $ isOutside pos
-    if out
-        then return 0
-        else transferAmmo
-            (Just maxGrenades)
-            (cell pos . cgrenades)
-            (currentPlayer . pgrenades)
+    transferAmmo
+        (Just maxGrenades)
+        (cell pos . cgrenades)
+        (currentPlayer . pgrenades)
+
+pickTreasures :: ActionState Int
+pickTreasures = pickInside $ do
+    pos <- use $ currentPlayer . position
+    ctr <- use (cell pos . ctreasures)
+    let nctr = length ctr
+    health <- use $ currentPlayer . phealth
+    when (health == Healthy) $ do
+        ptr <- use (currentPlayer . ptreasure)
+        when (isNothing ptr && not (null ctr)) $ do
+            let ctr' = tail ctr
+            let ptr' = Just $ head ctr
+            cell pos . ctreasures .= ctr'
+            currentPlayer . ptreasure .= ptr'
+    return nctr
 
 nextPit :: Monad m => Int -> LabState m Int
 nextPit i = do
@@ -220,19 +240,11 @@ cellActions moved = do
     nct <- if isJust pos'
         then liftM Just $ use (cell npos . ctype)
         else return Nothing
-    let nctr = fmap ctResult nct
-    -- Pick ammo
+    let nctype = fmap ctResult nct
     cb <- pickBullets
     cg <- pickGrenades
-    -- Pick treasures
-    ctr <- use (cell npos . ctreasures)
-    ptr <- use (currentPlayer . ptreasure)
-    when (isNothing ptr && not (null ctr)) $ do
-        let ctr' = tail ctr
-        let ptr' = Just $ head ctr
-        cell npos . ctreasures .= ctr'
-        currentPlayer . ptreasure .= ptr'
-    return (ctResult ct, CellEvents cb cg (length ctr) nctr)
+    ctr <- pickTreasures
+    return (ctResult ct, CellEvents cb cg ctr nctype)
 
 performMovement :: MoveDirection -> [Action] -> ActionState ()
 performMovement (Towards dir) rest = let returnCont = returnContinue rest in do

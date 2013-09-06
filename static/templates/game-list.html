@@ -1,9 +1,0 @@
-{{#each this}}
-    <div class='game'>
-        <a href='#{{@key}}'>{{@key}} - {{game.width}}x{{game.height}},
-            {{game.players}} players{{#if game.gameEnded}}, finished{{/if}}</a>
-        <form action='/game/{{@key}}/delete' data-ajax='1' data-method='DELETE'>
-            <input type='submit' value='x'>
-        </form>
-    </div>
-{{/each}}

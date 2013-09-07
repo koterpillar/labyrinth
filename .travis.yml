@@ -1,3 +1,15 @@
 language: haskell
+
+before_install:
+  - cabal update
+  - travis/cabal-apt-install $mode
+
 install:
-  - cabal install --only-dependencies --enable-tests --force-reinstalls
+  - cabal configure -flib-Werror $mode
+  - cabal build
+
+script:
+  - $script
+
+env:
+  - mode="--enable-tests" script="cabal test --show-details=always"

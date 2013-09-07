@@ -121,15 +121,24 @@ makeLenses ''Labyrinth
 
 isInside :: Position -> Labyrinth -> Bool
 isInside (Pos x y) l = and [ x >= 0
-                            , x < w
-                            , y >= 0
-                            , y < h
-                            ]
+                           , x < w
+                           , y >= 0
+                           , y < h
+                           ]
     where w = l ^. labWidth
           h = l ^. labHeight
 
 isOutside :: Position -> Labyrinth -> Bool
 isOutside p = not . isInside p
+
+wayOutside :: Position -> Labyrinth -> Bool
+wayOutside (Pos x y) l = or [ x < (-1)
+                            , x > w
+                            , y < (-1)
+                            , y > h
+                            ]
+    where w = l ^. labWidth
+          h = l ^. labHeight
 
 outerPos :: Labyrinth -> [(Position, Direction)]
 outerPos l = concat [ [(Pos x 0, U)       | x <- [0..w - 1]]

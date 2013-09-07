@@ -324,8 +324,9 @@ performShoot dir = do
     if b > 0
         then do
             pos <- use (currentPlayer . position)
+            out <- gets $ isOutside pos
             ct <- use (cell pos . ctype)
-            if ct == Hospital || ct == Armory
+            if not out && (ct == Hospital || ct == Armory)
                 then return $ ShootR Forbidden
                 else do
                     currentPlayer . pbullets -= 1
@@ -334,6 +335,37 @@ performShoot dir = do
                     return $ ShootR res
         else
             return $ ShootR NoBullets
+
+performShootFrom :: Position -> Direction -> ActionState ShootResult
+performShootFrom pos dir =
+    let endShot = return ShootOK
+        endShotIf cond act = if cond then endShot else act
+    in do
+        wayOut <- gets $ wayOutside pos
+        endShotIf wayOut $ do
+            out <- gets $ isOutside pos
+            ct <- use (cell pos . ctype)
+            endShotIf (not out && ct == Hospital) $ do
+                hit <- playersAliveAt pos
+                pi <- use currentTurn
+                let othersHit = delete pi hit
+                if null othersHit
+                    then endShotIf (not out && ct == Armory) $ do
+                        let npos = advance pos dir
+                        nout <- gets $ isOutside npos
+                        w <- use (wall pos dir)
+                        if (out && nout) || w == NoWall
+                            then performShootFrom (advance pos dir) dir
+                            else endShot
+                    else do
+                        forM_ othersHit $ \i -> do
+                            ph <- use (player i . phealth)
+                            dropBullets i
+                            dropTreasure i
+                            when (ph == Wounded) $ dropGrenades i
+                            player i . pjustShot .= True
+                            player i . phealth %= pred
+                        return Scream
 
 allPlayers :: Monad m => LabState m [PlayerId]
 allPlayers = do
@@ -366,35 +398,6 @@ isFallen i = use (player i . pjustShot)
 
 notFallen :: Monad m => PlayerId -> LabState m Bool
 notFallen i = liftM not $ isFallen i
-
-performShootFrom :: Position -> Direction -> ActionState ShootResult
-performShootFrom pos dir = do
-    outside <- gets $ isOutside pos
-    ct <- use (cell pos . ctype)
-    cnt <- gets playerCount
-    hit <- playersAliveAt pos
-    if not outside && ct == Hospital
-        then return ShootOK
-        else do
-            pi <- use currentTurn
-            let othersHit = delete pi hit
-            if null othersHit
-                then if outside || ct == Armory
-                    then return ShootOK
-                    else do
-                        w <- use (wall pos dir)
-                        if w == NoWall
-                            then performShootFrom (advance pos dir) dir
-                            else return ShootOK
-                else do
-                    forM_ othersHit $ \i -> do
-                        ph <- use (player i . phealth)
-                        dropBullets i
-                        dropTreasure i
-                        when (ph == Wounded) $ dropGrenades i
-                        player i . pjustShot .= True
-                        player i . phealth %= pred
-                    return Scream
 
 dropBullets :: PlayerId -> ActionState ()
 dropBullets i = do

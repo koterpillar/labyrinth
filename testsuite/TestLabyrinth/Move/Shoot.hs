@@ -183,14 +183,59 @@ test_into_armory = do
             hit Wounded
             fell
 
-test_outside = do
+test_to_outside = do
     let target' = Pos 6 2
-    let duel_outside = applyState duel $ do
+    let duel_to_outside = applyState duel $ do
         (wall (Pos 5 2) R) .= NoWall
         (player 1 . position) .= target'
     assertMoveUpdates'
-        duel_outside
+        duel_to_outside
         (Move [Shoot R])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
+        $ do
+            passTurnBullet
+            (player 1 . phealth) .= Wounded
+            (player 1 . pbullets) .= 0
+            fell
+
+test_from_outside = do
+    let duel_from_outside = applyState duel $ do
+        (wall (Pos 0 2) L) .= NoWall
+        (player 0 . position) .= (Pos (-1) 2)
+    assertMoveUpdates'
+        duel_from_outside
+        (Move [Shoot R])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
+        $ do
+            passTurnBullet
+            hit Wounded
+            fell
+
+test_through_to_outside = do
+    let duel_through_to_outside = applyState duel $ do
+        (wall (Pos 0 2) L) .= NoWall
+        (player 0 . position) .= (Pos (-1) 2)
+        (wall (Pos 5 2) R) .= NoWall
+        (player 1 . position) .= (Pos 6 2)
+    assertMoveUpdates'
+        duel_through_to_outside
+        (Move [Shoot R])
+        (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
+        $ do
+            passTurnBullet
+            (player 1 . phealth) .= Wounded
+            (player 1 . pbullets) .= 0
+            fell
+
+test_through_outside = do
+    let duel_through_outside = applyState duel $ do
+        (wall (Pos 0 2) L) .= NoWall
+        (player 0 . position) .= (Pos (-1) 2)
+        (wall (Pos 0 4) L) .= NoWall
+        (player 1 . position) .= (Pos (-1) 4)
+    assertMoveUpdates'
+        duel_through_outside
+        (Move [Shoot D])
         (MoveRes [ShootR Scream, WoundedAlert 1 Wounded])
         $ do
             passTurnBullet

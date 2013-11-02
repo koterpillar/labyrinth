@@ -221,12 +221,12 @@ instance Show ActionResult where
     show (GoR InvalidMovement) = "invalid movement"
     show (GoR LostOutside) = "lost outside"
 
-    show (ShootR ShootOK)   = "ok"
+    show (ShootR ShootOK)   = "fired"
     show (ShootR Scream)    = "a scream is heard"
     show (ShootR NoBullets) = "no bullets"
     show (ShootR Forbidden) = "shooting forbidden"
 
-    show (GrenadeR GrenadeOK)  = "ok"
+    show (GrenadeR GrenadeOK)  = "grenade thrown"
     show (GrenadeR NoGrenades) = "no grenades"
 
     show Surrendered = "surrendered"

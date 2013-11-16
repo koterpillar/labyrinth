@@ -15,8 +15,8 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Tuple
 
-generateLabyrinth :: RandomGen g => Int -> Int -> Int -> g -> (Labyrinth, g)
-generateLabyrinth w h p = runRand $ execStateT generate $ emptyLabyrinth w h p
+generateLabyrinth :: RandomGen g => LabyrinthParams -> g -> (Labyrinth, g)
+generateLabyrinth p = runRand $ execStateT generate $ emptyLabyrinth p
 
 type LabGen g a = LabState (Rand g) a
 

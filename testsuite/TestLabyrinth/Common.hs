@@ -16,7 +16,10 @@ assertShowEquals message move = assertEqual message $ show move
 w = 6
 h = 5
 
-empty_labyrinth = applyState (emptyLabyrinth w h 2) $ do
+defaultParams :: Int -> LabyrinthParams
+defaultParams = LabyrinthParams w h
+
+empty_labyrinth = applyState (emptyLabyrinth $ defaultParams 2) $ do
     (player 0 . position) .= Pos 0 0
     (player 1 . position) .= Pos 2 2
     positionsChosen .= True

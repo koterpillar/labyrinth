@@ -119,6 +119,13 @@ data Labyrinth = Labyrinth { _labWidth        :: Int
 
 makeLenses ''Labyrinth
 
+data LabyrinthParams = LabyrinthParams { _lpwidth  :: Int
+                                       , _lpheight :: Int
+                                       , _lpplayers :: Int
+                                       }
+
+makeLenses ''LabyrinthParams
+
 isInside :: Position -> Labyrinth -> Bool
 isInside (Pos x y) l = and [ x >= 0
                            , x < w
@@ -158,14 +165,17 @@ posRectangle w h = [Pos x y | y <- [0..h - 1], x <- [0..w - 1]]
 mapRectangle :: a -> Int -> Int -> M.Map Position a
 mapRectangle x w h = M.fromList $ zip (posRectangle w h) (repeat x)
 
-emptyLabyrinth :: Int -> Int -> Int -> Labyrinth
-emptyLabyrinth w h playerCount =
-    let initialLab = Labyrinth { _labWidth           = w
+emptyLabyrinth :: LabyrinthParams -> Labyrinth
+emptyLabyrinth p =
+    let w = p ^. lpwidth
+        h = p ^. lpheight
+        pc = p ^. lpplayers
+        initialLab = Labyrinth { _labWidth           = w
                                , _labHeight          = h
                                , _cells              = mapRectangle (emptyCell Land) w h
                                , _wallsH             = mapRectangle NoWall w (h + 1)
                                , _wallsV             = mapRectangle NoWall (w + 1) h
-                               , _players            = replicate playerCount $ initialPlayer $ Pos 0 0
+                               , _players            = replicate pc $ initialPlayer $ Pos 0 0
                                , _currentTurn        = 0
                                , _positionsChosen    = False
                                , _gameEnded          = False

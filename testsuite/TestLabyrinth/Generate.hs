@@ -16,8 +16,10 @@ import Labyrinth.Reachability
 import Test.Framework
 import Test.QuickCheck (conjoin, printTestCase, Property)
 
+import TestLabyrinth.Common
+
 instance Arbitrary Labyrinth where
-    arbitrary = liftM (fst . generateLabyrinth 5 6 3 . mkStdGen) arbitrary
+    arbitrary = liftM (fst . generateLabyrinth (defaultParams 3) . mkStdGen) arbitrary
 
 isCellType :: CellTypeResult -> Cell -> Bool
 isCellType ct = (ct ==) . ctResult . view ctype

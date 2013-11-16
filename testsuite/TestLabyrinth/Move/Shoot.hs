@@ -52,7 +52,7 @@ test_wounded = do
             (cell target . cgrenades) .= 3
 
 test_wounded_alert = do
-    let duel3 = applyState (emptyLabyrinth 5 5 3) $ do
+    let duel3 = applyState (emptyLabyrinth (defaultParams 3)) $ do
         (player 0 . position) .= Pos 0 2
         (player 1 . position) .= Pos 4 4
         (player 2 . position) .= Pos 2 2
@@ -267,7 +267,7 @@ test_found_bullets = do
             (player 0 . pbullets) .= 0
 
 test_reorder_cell = do
-    let duel = applyState (emptyLabyrinth 5 6 2) $ do
+    let duel = applyState (emptyLabyrinth (defaultParams 2)) $ do
         (player 0 . position) .= Pos 0 0
         (player 1 . position) .= Pos 2 0
         (player 1 . pbullets) .= 0

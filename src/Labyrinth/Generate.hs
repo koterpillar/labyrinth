@@ -16,7 +16,8 @@ import Data.Maybe
 import Data.Tuple
 
 generateLabyrinth :: RandomGen g => LabyrinthParams -> g -> (Labyrinth, g)
-generateLabyrinth p = runRand $ execStateT generate $ emptyLabyrinth p
+generateLabyrinth p = runRand $ execStateT (generate f) $ emptyLabyrinth p
+    where f = p ^. lpfeatures
 
 type LabGen g a = LabState (Rand g) a
 
@@ -238,15 +239,15 @@ untilRN n prop act = do
             put v
             untilRN (n - 1) prop act
 
-generate :: RandomGen g => LabGen g ()
-generate = do
+generate :: RandomGen g => LabyrinthFeatures -> LabGen g ()
+generate f = do
     untilRN 10 goodDistribution $ do
         res <- untilRN 10 goodReachability $ do
             putArmories
             putHospitals
-            putPits
+            when (f ^. lfpits) $ putPits
             untilRN 50 goodReachability $ do
-                putRivers
+                when (f ^. lfrivers) putRivers
                 putWalls
         if res
             then do

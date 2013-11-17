@@ -17,7 +17,10 @@ w = 6
 h = 5
 
 defaultParams :: Int -> LabyrinthParams
-defaultParams = LabyrinthParams w h
+defaultParams = LabyrinthParams defaultFeatures w h
+
+simpleParams :: Int -> LabyrinthParams
+simpleParams = LabyrinthParams simpleFeatures w h
 
 empty_labyrinth = applyState (emptyLabyrinth $ defaultParams 2) $ do
     (player 0 . position) .= Pos 0 0

@@ -119,7 +119,20 @@ data Labyrinth = Labyrinth { _labWidth        :: Int
 
 makeLenses ''Labyrinth
 
-data LabyrinthParams = LabyrinthParams { _lpwidth  :: Int
+data LabyrinthFeatures = LabyrinthFeatures { _lfpits :: Bool
+                                           , _lfrivers :: Bool
+                                           }
+
+makeLenses ''LabyrinthFeatures
+
+defaultFeatures :: LabyrinthFeatures
+defaultFeatures = LabyrinthFeatures True True
+
+simpleFeatures :: LabyrinthFeatures
+simpleFeatures = LabyrinthFeatures False False
+
+data LabyrinthParams = LabyrinthParams { _lpfeatures :: LabyrinthFeatures
+                                       , _lpwidth  :: Int
                                        , _lpheight :: Int
                                        , _lpplayers :: Int
                                        }

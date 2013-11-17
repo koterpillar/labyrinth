@@ -21,25 +21,49 @@ import TestLabyrinth.Common
 instance Arbitrary Labyrinth where
     arbitrary = liftM (fst . generateLabyrinth (defaultParams 3) . mkStdGen) arbitrary
 
+newtype SimpleLabyrinth = SimpleLabyrinth Labyrinth
+                          deriving (Eq, Show)
+
+instance Arbitrary SimpleLabyrinth where
+    arbitrary = liftM (SimpleLabyrinth . fst . generateLabyrinth (simpleParams 3) . mkStdGen) arbitrary
+
 isCellType :: CellTypeResult -> Cell -> Bool
 isCellType ct = (ct ==) . ctResult . view ctype
 
 countByType :: CellTypeResult -> [Cell] -> Int
 countByType ct = length . filter (isCellType ct)
 
+labyrinthTests :: [(String, Labyrinth -> Bool)]
+labyrinthTests = [ ("no unique cells", no_unique_cells)
+                 , ("has required types", has_required_types)
+                 , ("has true treasure", has_true_treasure)
+                 , ("enough fake treasures", enough_fake_treasures)
+                 , ("no treasures together", no_treasures_together)
+                 , ("treasures on land", treasures_on_land)
+                 , ("enough exits", enough_exits)
+                 , ("no walls in rivers", no_walls_in_rivers)
+                 , ("armory reachable", armory_reachable)
+                 ]
+
+testAll :: Arbitrary a => [(String, a -> Bool)] -> a -> Property
+testAll tests x =
+    conjoin [printTestCase ("failed: " ++ msg) $ tst x | (msg, tst) <- tests]
+
 prop_good_labyrinth :: Labyrinth -> Property
-prop_good_labyrinth l =
-    conjoin [printTestCase ("failed: " ++ msg) $ tst l | (msg, tst) <- tests]
-    where tests = [ ("no unique cells", no_unique_cells)
-                  , ("has required types", has_required_types)
-                  , ("has true treasure", has_true_treasure)
-                  , ("enough fake treasures", enough_fake_treasures)
-                  , ("no treasures together", no_treasures_together)
-                  , ("treasures on land", treasures_on_land)
-                  , ("enough exits", enough_exits)
-                  , ("no walls in rivers", no_walls_in_rivers)
-                  , ("armory reachable", armory_reachable)
-                  ]
+prop_good_labyrinth = testAll labyrinthTests
+
+prop_good_simple :: SimpleLabyrinth -> Property
+prop_good_simple (SimpleLabyrinth l) = testAll simpleLabyrinthTests l
+    where simpleLabyrinthTests = labyrinthTests
+                              ++ [ ("no rivers", no_rivers)
+                                 , ("no pits", no_pits)
+                                 ]
+
+no_pits :: Labyrinth -> Bool
+no_pits l = countByType PitR (allCells l) == 0
+
+no_rivers :: Labyrinth -> Bool
+no_rivers l = countByType RiverR (allCells l) == 0
 
 no_unique_cells :: Labyrinth -> Bool
 no_unique_cells l = and $ map (\ct -> noUnique ct cells) allTypes
